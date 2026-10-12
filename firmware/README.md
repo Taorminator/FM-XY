@@ -1,14 +1,13 @@
 # FM-XY firmware
 
-Native firmware development uses [Felucca](https://github.com/hugelton/Felucca) (GPL-3.0-only), pinned to `ef1f561b6b105f20350f6b1eac0dc0789a357f00`.
+Based on [Felucca](https://github.com/hugelton/Felucca), GPL-3.0-only, pinned to `ef1f561b6b105f20350f6b1eac0dc0789a357f00`.
 
-## First source overlay
-- Adds three display palettes and an FM-XY boot screen.
-- Shows two read-only chord suggestions for major and minor.
-- Preserves the upstream audio engine, sequencer, storage, OTA and version metadata.
+This source overlay adds an FM-XY splash, original credits and **read-only harmonic suggestions** to Felucca's existing CHORD display. Audio, input timing, sequencer, OTA, storage and all 10 original palettes remain unchanged.
 
-Run `python3 firmware/apply_felucca_overlay.py PATH_TO_PINNED_FELUCCA`, then follow [Felucca's build and test instructions](https://github.com/hugelton/Felucca/blob/main/BUILDING.md).
+The browser demo's three named themes and ROOT/TYPE keyboard interaction are **not yet ported** to native firmware.
 
-CI tests the overlay and palette contrast. **No compiled firmware or hardware validation yet. Do not flash.**
+Run `python3 firmware/apply_felucca_overlay.py PATH_TO_FELUCCA`, then follow [Felucca's build instructions](https://github.com/hugelton/Felucca/blob/main/BUILDING.md).
 
-[Installer plan](INSTALLER.md) · [Credits](../CREDITS.md)
+CI builds original Felucca and the patched copy separately and runs upstream regressions. No firmware is approved for installation.
+
+[Installer and release requirements](INSTALLER.md) · [Credits](../CREDITS.md)
