@@ -101,6 +101,26 @@ def install(repo: Path) -> None:
     patch_once(p,
                "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);",
                "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);\n    t->p[P_ROOT] = 7;   /* ROOT G: the held chord follows the keyboard up 2 semitones */\n    arp_run(t, 3);\n    assert(arp_seen[0] == 62 && arp_seen[1] == 69 && arp_seen[2] == 74);\n    t->p[P_ROOT] = 5;")
+    p = repo / "firmware/src/params.c"
+    patch_once(p, "    {\"CHORD\", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, 0xFF, 0xFF}},", "    {\"CHORD\", FAM_SCL, SC_TRACK, GR_CHORD, {P_ROOT, P_CHRD, P_VOIC, P_AMODE}},")
+    p = repo / "firmware/src/ui_draw.c"
+    patch_once(p, "static void draw_columns(void)\n{", "/* FM-XY four hardware knobs on CHORD. */\nstatic const char *fmxy_chord_card_label(uint32_t c)\n{\n    static const char *const labels[4] = {\"ROOT\", \"TYPE\", \"VOICE\", \"ARP\"};\n    return labels[c & 3u];\n}\nstatic void draw_columns(void)\n{")
+    p = repo / "firmware/src/ui_draw.c"
+    patch_once(p, "        draw_column(c, d->label, val, unit, VAL(c), d->fmt == F_ENUM && d->max < 2 ? -1 : RATIO(d, enum_rank(d, *vp)),", "        draw_column(c, cur_page()->graph == GR_CHORD ? fmxy_chord_card_label(c) : d->label, val, unit,\n                    VAL(c), d->fmt == F_ENUM && d->max < 2 ? -1 : RATIO(d, enum_rank(d, *vp)),")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "static uint32_t song_leds(void);", "/* Suggestions illuminate triggers but never edit or sound notes.\n * UI work only, not inside the audio ISR. */\nstatic uint32_t fmxy_chord_hint_leds(uint32_t *first)\n{\n    const track_t *t = TSEL;\n    fmxy_hint_t hints[2];\n    uint32_t k, second = 0;\n    *first = 0;\n    if (ui.home || ui.menu || ui.layer || ui.confirm || name_on() ||\n        cur_page()->graph != GR_CHORD || chord_kit(t) ||\n        t->p[P_CHRD] < CH_MAJ || t->p[P_CHRD] > CH_POW ||\n        (t->p[P_SCALE] != 1 && t->p[P_SCALE] != 2))\n        return 0;\n    fmxy_suggest((uint8_t)t->p[P_ROOT], (uint8_t)t->p[P_ROOT],\n                 (uint8_t)(t->p[P_SCALE] == 2), hints);\n    for (k = 0; k < 12u; k++) {\n        uint32_t note = kb_map(t, k);\n        if (note == KB_SILENT)\n            continue;\n        if (note % 12u == hints[0].root)\n            *first |= 1u << k;\n        else if (note % 12u == hints[1].root)\n            second |= 1u << k;\n    }\n    return second;\n}\nstatic uint32_t song_leds(void);")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "    uint32_t k, c, g, br, beat, sc, sr = 0;", "    uint32_t k, c, g, br, beat, sc, sr = 0, fmxy_first = 0, fmxy_second;")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "    sc = keys_map ? 0u : scale_leds(&sr);", "    fmxy_second = keys_map ? 0u : fmxy_chord_hint_leds(&fmxy_first);\n    sc = keys_map || fmxy_first || fmxy_second ? 0u : scale_leds(&sr);")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "        led_put(nb, 14u + k, (int)((br >> k) & 1u));", "        led_put(nb, 14u + k, (int)((br >> k) & 1u));\n        led_put(sm, 14u + k, (int)((fmxy_first >> k) & 1u));\n        led_put(sg, 14u + k, (int)((fmxy_second >> k) & 1u));")
+    p = repo / "tests/ui_test.c"
+    patch_once(p, "    bad += check(\"SCL tapped again: the CHORD page (CHRD VOIC, the chord graph)\", ok && cur_page()->id[0] == P_CHRD &&\n                 cur_page()->id[1] == P_VOIC);", "    bad += check(\"FM-XY CHORD page: ROOT TYPE VOICE ARP\", ok &&\n                 cur_page()->id[0] == P_ROOT && cur_page()->id[1] == P_CHRD &&\n                 cur_page()->id[2] == P_VOIC && cur_page()->id[3] == P_AMODE);")
+    p = repo / "tests/ui_test.c"
+    patch_once(p, "    turn(EN_K1, 1); frame();\n    turn(EN_K2, 1); frame();\n    bad += check(\"  KNOB 1: CHRD DIA3, KNOB 2: VOIC OPEN\", t->p[P_CHRD] == CH_DIA3 && t->p[P_VOIC] == VC_OPEN);", "    turn(EN_K2, 1); frame();\n    turn(EN_K3, 1); frame();\n    bad += check(\"  FM-XY KNOB 2 TYPE DIA3, KNOB 3 VOICE OPEN\", t->p[P_CHRD] == CH_DIA3 && t->p[P_VOIC] == VC_OPEN);\n    turn(EN_K4, 1); frame();\n    bad += check(\"  FM-XY KNOB 4 controls native ARP\", t->p[P_AMODE] == AM_UP);\n    turn(EN_K4, -1); frame();")
+    p = repo / "tests/ui_test.c"
+    patch_once(p, "    key_down(7); frame();                                          /* C4 in C (SCALE CHR: the major of C) */", "    t->p[P_ROOT] = 5; t->p[P_SCALE] = 1; t->p[P_CHRD] = CH_MAJ;\n    {\n        uint32_t first = 0, second = fmxy_chord_hint_leds(&first);\n        bad += check(\"FM-XY LEDs: C then D as suggestion triggers in F major\",\n                     first == (1u << 7) && second == (1u << 9));\n        bad += check(\"  hints leave the chosen chord untouched\",\n                     t->p[P_ROOT] == 5 && t->p[P_CHRD] == CH_MAJ && t->p[P_VOIC] == VC_OPEN);\n        t->p[P_SCALE] = 0;\n        bad += check(\"  chromatic: no misleading diatonic LEDs\",\n                     fmxy_chord_hint_leds(&first) == 0u && first == 0u);\n    }\n    t->p[P_ROOT] = 0; t->p[P_CHRD] = CH_DIA3; t->p[P_SCALE] = 0;\n    key_down(7); frame();                                          /* C4 in C (SCALE CHR: the major of C) */")
     p = repo / "tests/ui_render.c"
     patch_once(
         p,
