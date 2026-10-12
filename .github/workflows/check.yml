@@ -1,0 +1,14 @@
+name: Browser prototype check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure demo and disabled installer exist
+        run: |
+          test -s docs/index.html
+          test -s docs/try/index.html
+          test -s docs/installer/index.html
+          grep -q 'disabled' docs/installer/index.html
+          ! find . -type f -name '*.fwsc' | grep .
