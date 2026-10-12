@@ -1,14 +1,31 @@
-name: Browser prototype check
-on: [push, pull_request]
+name: FM-XY checks
+on:
+  push:
+  pull_request:
 jobs:
-  check:
+  browser-and-harmony:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure demo and disabled installer exist
+      - name: Verify pages and disabled installer
         run: |
           test -s docs/index.html
           test -s docs/try/index.html
           test -s docs/installer/index.html
           grep -q 'disabled' docs/installer/index.html
           ! find . -type f -name '*.fwsc' | grep .
+      - name: JavaScript syntax check
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('docs/try/index.html').read_text()
+          m=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S)
+          if not m: raise SystemExit('No JavaScript to check')
+          Path('/tmp/fmxy.js').write_text('\n'.join(m))
+          PY
+          node --check /tmp/fmxy.js
+      - name: Native harmony module
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic firmware/tests/test_harmony.c -o /tmp/fmxy-harmony
+          /tmp/fmxy-harmony
