@@ -22,6 +22,10 @@ jobs:
           python3 -m pip install --break-system-packages Pillow fonttools
           command -v cc
           command -v node
+      - name: FM-XY STYLE scheduler host tests
+        run: |
+          cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style.c -o /tmp/fmxy-style-test
+          /tmp/fmxy-style-test
       - name: Clone pinned Felucca upstream
         run: |
           git clone --filter=blob:none https://github.com/hugelton/Felucca.git /tmp/felucca-base

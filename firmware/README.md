@@ -8,6 +8,8 @@ With `ROOT=F` and `CHRD=MIN7`, the first three physical keys play Fm7, F#m7 and 
 
 Existing Felucca polyphonic chord note-on/off, live and step recording, arpeggiator and global eight-voice stealing are reused. The native SCL > CHORD page now offers four working knobs: **ROOT / TYPE / VOICE / ARP**. Knob 4 uses Felucca's existing ARP mode, not the browser prototype's separate STYLE parameter. Browser STYLE modes **STRUM, SPREAD and ARP note-staggering** remain unimplemented. With a major/minor scale selected and a fixed chord TYPE, the CHORD page illuminates two suggested root-trigger keys (first brighter, second dimmer) without changing the chosen chord. SCALE LEDS behave as before on other screens. This is an incremental native UI, not a port of all three browser themes or the entire OP-XY visual language. FM1 hardware and timing remain unverified.
 
+The new `firmware/fmxy_style.h` is a **host-tested, fixed-memory scheduling primitive**, not yet connected to the FM1's note-on/off path. BLOCK starts all notes together; STRUM stages additional notes at 20 ms intervals and SPREAD at 50 ms intervals. It cancels future events on key release, suppresses OFF for unheard notes, survives sample-counter wrap, and explicitly delegates ARP to Felucca. Integration still requires handling shared notes, live recording, MIDI and ISR cost on the real device. No STRUM/SPREAD playback is claimed yet.
+
 Run `python3 firmware/apply_felucca_overlay.py PATH_TO_PINNED_FELUCCA`, then follow [Felucca's build instructions](https://github.com/hugelton/Felucca/blob/main/BUILDING.md).
 
 CI builds the upstream baseline and patched tree independently. **No release is approved for hardware installation.** [Installer gates](INSTALLER.md) · [Credits](../CREDITS.md)
