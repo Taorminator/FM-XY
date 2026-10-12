@@ -75,10 +75,7 @@ jobs:
         run: |
           if test -d /tmp/fmxy-felucca/.git; then
             git -C /tmp/fmxy-felucca diff --name-only | tee /tmp/fmxy-changed-files.txt
-            if grep -E '^firmware/(src/(audio|seq|usb|storage|flash|midi|voice|fx)[.]c|loader/)' /tmp/fmxy-changed-files.txt; then
-              echo 'Unexpected modification to timing, audio, storage or loader code'
-              exit 1
-            fi
+            python3 firmware/verify_overlay_safety.py /tmp/fmxy-felucca
           fi
       - name: Test summary only (no firmware upload)
         if: always()

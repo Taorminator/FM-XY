@@ -13,6 +13,8 @@ jobs:
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic firmware/tests/test_harmony.c -o /tmp/fmxy-test
           /tmp/fmxy-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic firmware/tests/test_keyboard.c -o /tmp/fmxy-keyboard-test
+          /tmp/fmxy-keyboard-test
       - name: Fetch pinned Felucca source
         run: |
           git clone https://github.com/hugelton/Felucca.git /tmp/felucca
@@ -26,6 +28,6 @@ jobs:
           test -s /tmp/fmxy-ui-palettes.h
       - name: Verify unchanged hardware-critical paths
         run: |
-          test -z "$(git -C /tmp/felucca diff --name-only -- firmware/src/audio.c firmware/src/seq.c firmware/src/ota.c firmware/src/storage.c firmware/loader)"
+          python3 firmware/verify_overlay_safety.py /tmp/felucca
           git -C /tmp/felucca diff --stat
           git -C /tmp/felucca status --short
