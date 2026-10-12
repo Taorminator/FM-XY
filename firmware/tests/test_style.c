@@ -83,7 +83,7 @@ int main(void)
     fmxy_style_panic(&q, emitted, 0);
     assert(q.pending == 0u);
     fmxy_style_process(&q, 100000u, emitted, 0);
-    assert(nevents == 10u);  /* 2 on + 2 on + 2 off + 2 on + 2 off */
+    assert(nevents == 12u);  /* 2 + 2 + 2 + 2 ON/OFF events plus 4 final OFFs */
 
     /* A wrap of the unsigned sample clock does not hang or prematurely fire. */
     clear_log();
