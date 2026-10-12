@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <!-- SPDX-License-Identifier: GPL-3.0-only; FM-XY browser prototype by Middle Age Engineering. Unofficial; not affiliated with hardware or instrument makers. -->
 <head>
 <meta charset="utf-8">
@@ -45,63 +45,63 @@ body.theme-mono .screen-canvas,body.theme-mono .large-screen{image-rendering:pix
 <body>
 <div class="shell">
  <header class="topbar">
-  <div class="identity"><div class="identity-logo">FM<span>-XY</span></div><div class="identity-line">MIDDLE AGE ENGINEERING <span class="vtag">BROWSER PROTOTYPE 0.1.15</span></div></div>
+  <div class="identity"><div class="identity-logo">FM<span>-XY</span></div><div class="identity-line">MIDDLE AGE ENGINEERING <span class="vtag">BROWSER PROTOTYPE 0.1.16</span></div></div>
   <div class="top-actions">
-   <span id="audioStatus" class="audio-status"><span class="status-dot"></span> Audio aus</span>
-   <button id="audioToggle" class="ui-button primary" type="button">▶ Audio aktivieren</button>
+   <span id="audioStatus" class="audio-status"><span class="status-dot"></span> Audio off</span>
+   <button id="audioToggle" class="ui-button primary" type="button">▶ Enable audio</button>
    <button id="topPlay" class="ui-button" type="button">▶ Play</button>
    <button id="topRec" class="ui-button rec" type="button">● Rec</button>
-   <button id="splashReplay" class="ui-button subtle" type="button" title="FM-XY-Startbildschirm erneut anzeigen">↻ Splash ansehen</button>
-   <button id="displaySettings" class="ui-button subtle" type="button" title="FM-XY-Display- und Theme-Menü öffnen">☷ Display / Themes</button>
-   <button id="themeToggle" class="ui-button subtle" type="button" title="Themes direkt durchschalten">Theme: OP-XY Mono</button>
+   <button id="splashReplay" class="ui-button subtle" type="button" title="Replay the FM-XY splash screen">↻ View splash</button>
+   <button id="displaySettings" class="ui-button subtle" type="button" title="Open display and theme settings">☷ Display / Themes</button>
+   <button id="themeToggle" class="ui-button subtle" type="button" title="Cycle through themes">Theme: OP-XY Mono</button>
   </div>
  </header>
- <div class="summary"><span class="eyebrow">FM-XY × FM1</span> <span>By Middle Age Engineering · Akkorde, Variationen und schnelle Loops.</span><span class="disclaimer">Browser-Prototyp · keine FM1-Firmware</span></div>
+ <div class="summary"><span class="eyebrow">FM-XY × FM1</span> <span>By Middle Age Engineering · Chords, variations and quick loops.</span><span class="disclaimer">Browser prototype · not FM1 firmware</span></div>
  <main class="main-layout">
-  <section class="instrument-section" aria-label="Virtuelles FM1 Bedienfeld">
+  <section class="instrument-section" aria-label="Virtual FM1 control surface">
    <div class="device-frame">
     <div class="device-top">
      <div class="left-controls"><div class="brand-mark">M·VAVE <span>FM1</span></div><div id="leftKnobs" class="left-knob-grid"></div><div class="octaves"><button type="button" class="hardware-button octave" data-action="OCT-">OCT −</button><button type="button" class="hardware-button octave" data-action="OCT+">OCT +</button></div></div>
-     <div class="display-assembly"><div class="display-bezel"><canvas id="screen" width="240" height="240" aria-label="FM1 Display 240 mal 240 Pixel" role="img"></canvas></div><div class="display-under"><span>240 × 240 PX</span><span id="onDeviceStatus">READY</span></div></div>
+     <div class="display-assembly"><div class="display-bezel"><canvas id="screen" width="240" height="240" aria-label="FM1 display, 240 by 240 pixels" role="img"></canvas></div><div class="display-under"><span>240 × 240 PX</span><span id="onDeviceStatus">READY</span></div></div>
      <div class="right-controls"><div id="rightKnobs" class="right-knob-grid"></div><div id="hardwareButtons" class="hardware-buttons"></div><div class="right-meta"><span>FOUR ENCODERS</span><span>12 FUNCTION KEYS</span></div></div>
     </div>
-    <div class="keyboard-deck"><div class="deck-head"><span>PERFORMANCE KEYS</span><span id="keyHint">CHORD · 7 SCALE DEGREES</span></div><div class="piano-keys" id="pianoKeys" aria-label="27 spielbare Tasten"></div></div>
-    <div class="device-bottom"><span>FM-XY <i></i> MIDDLE AGE ENGINEERING</span><span>V0.1.15 · UX / AUDIO SIMULATOR</span></div>
+    <div class="keyboard-deck"><div class="deck-head"><span>PERFORMANCE KEYS</span><span id="keyHint">CHORD · KEY 1 CURRENT · 2/3 SUGGESTIONS</span></div><div class="piano-keys" id="pianoKeys" aria-label="27 playable keys"></div></div>
+    <div class="device-bottom"><span>FM-XY <i></i> MIDDLE AGE ENGINEERING</span><span>V0.1.16 · UX / AUDIO SIMULATOR</span></div>
    </div>
-   <div class="device-foot"><div class="tip-dot"></div><span><strong>Bedienung:</strong> HOME kurz = Übersicht · <strong>HOME ca. 0,6 s halten = DISPLAY-Menü</strong> · alternativ oben »Display / Themes«. Im Menü: ALGORITHM = Reiter, PRESETS = Zeile, Encoder 1–4 = Werte. »Splash ansehen« spielt den Startbildschirm jederzeit erneut ab.</span></div>
-   <div class="mobile-quick"><button type="button" id="prevPage" class="ui-button">← Seite</button><button type="button" id="nextPage" class="ui-button">Seite →</button></div>
+   <div class="device-foot"><div class="tip-dot"></div><span><strong>Controls:</strong> Tap HOME for the overview · <strong>hold HOME for 0.6 seconds to open DISPLAY settings</strong> · or use the Display / Themes button above. In the menu: ALGORITHM selects tabs, PRESETS selects rows and encoders 1–4 adjust values. View splash replays the intro.</span></div>
+   <div class="mobile-quick"><button type="button" id="prevPage" class="ui-button">← Previous</button><button type="button" id="nextPage" class="ui-button">Next →</button></div>
   </section>
   <aside class="inspector">
-   <div class="inspector-head"><span class="eyebrow">LIVE DISPLAY</span><span class="light-label">2× ZOOM · PIXELTREU</span></div>
+   <div class="inspector-head"><span class="eyebrow">LIVE DISPLAY</span><span class="light-label">2× ZOOM · PIXEL PERFECT</span></div>
    <div class="large-screen"><canvas id="screenZoom" width="240" height="240" aria-hidden="true"></canvas></div>
-   <div class="inspect-toolbar"><div><strong id="pageTitle">CHORD LAB</strong><p id="pageHelp">Akkord bauen und live einspielen</p></div><span class="pill" id="trackPill">CHORD</span></div>
-   <div class="param-caption">ENCODER 1–4 <span>Zum Verändern: am Gerät drehen</span></div>
+   <div class="inspect-toolbar"><div><strong id="pageTitle">CHORD LAB</strong><p id="pageHelp">Build and play a chord live</p></div><span class="pill" id="trackPill">CHORD</span></div>
+   <div class="param-caption">ENCODER 1–4 <span>Turn the hardware encoders</span></div>
    <div id="parameterCards" class="param-cards"></div>
-   <div class="segment-heading">SPUREN <span>ALGORITHM wählt eine Spur</span></div><div id="trackTabs" class="track-tabs"></div>
-   <div class="segment-heading">MENÜS <span>Direkt anwählbar</span></div><div id="pageTabs" class="page-tabs"></div>
+   <div class="segment-heading">TRACKS <span>ALGORITHM selects a track</span></div><div id="trackTabs" class="track-tabs"></div>
+   <div class="segment-heading">MENUS <span>Direct access</span></div><div id="pageTabs" class="page-tabs"></div>
   </aside>
  </main>
  <section class="below-grid">
-  <div class="utility-pane"><div class="section-top"><span class="eyebrow">PROJECT WORKFLOW</span><span class="small-mono">LOKAL IM BROWSER</span></div>
-   <div class="utility-actions"><button id="saveProject" type="button" class="ui-button">↧ Lokal speichern</button><button id="exportProject" type="button" class="ui-button">↓ Projekt exportieren</button><button id="importProject" type="button" class="ui-button">↑ Projekt importieren</button><button id="resetProject" type="button" class="ui-button subtle">↺ Demo zurücksetzen</button><input id="projectFile" type="file" accept="application/json,.json" hidden></div>
-   <div class="help-grid"><div><h3>Musik machen</h3><p>Wähle <strong>CHORD</strong>, spiele Akkorde über die ersten sieben weißen Tasten. Drücke <strong>PLAY</strong> für den Demo-Loop und <strong>REC</strong> für Overdub. Auf der <strong>FX</strong>-Seite werden während REC die Filterbewegungen gespeichert.</p></div><div><h3>Step-Sequencer</h3><p><strong>SEQ</strong> öffnet das Raster. Die 16 weißen Tasten setzen oder entfernen Steps der gewählten Spur. Bei DRUM bestimmt Encoder 2 die Drum-Lane. Unter <strong>GLO</strong> kannst du die Spuren abmischen.</p></div></div>
-   <details class="shortcuts"><summary>Alle Tastatur-Shortcuts anzeigen <span>↗</span></summary><div class="shortcut-cols"><p><kbd>1</kbd>–<kbd>=</kbd> 12 Funktionstasten (FX bis REC) · <kbd>Shift</kbd> + <kbd>H</kbd> = HOME halten (Display-Menü)</p><p><kbd>Z X C V B N M , . / Q W E R T Y</kbd> die 16 weißen Keys</p><p><kbd>←</kbd><kbd>→</kbd> Track wählen; <kbd>↑</kbd><kbd>↓</kbd> BPM</p><p><kbd>[</kbd><kbd>]</kbd> Oktave; <kbd>Space</kbd> Play; <kbd>Shift</kbd> + <kbd>R</kbd> REC</p><p><kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> Projekt sichern</p></div></details>
+  <div class="utility-pane"><div class="section-top"><span class="eyebrow">PROJECT WORKFLOW</span><span class="small-mono">LOCAL TO YOUR BROWSER</span></div>
+   <div class="utility-actions"><button id="saveProject" type="button" class="ui-button">↧ Save locally</button><button id="exportProject" type="button" class="ui-button">↓ Export project</button><button id="importProject" type="button" class="ui-button">↑ Import project</button><button id="resetProject" type="button" class="ui-button subtle">↺ Reset demo</button><input id="projectFile" type="file" accept="application/json,.json" hidden></div>
+   <div class="help-grid"><div><h3>Make music</h3><p>Choose <strong>CHORD</strong> and set ROOT and TYPE with the first two encoders. White key 1 plays your chord, keys 2 and 3 audition suggested next chords. <strong>PLAY</strong> starts the demo loop and <strong>REC</strong> enables overdub. Filter movements on the <strong>FX</strong> screen are recorded during REC.</p></div><div><h3>Step-Sequencer</h3><p><strong>SEQ</strong> opens the 16-step grid. White keys add or remove steps on the selected track. On DRUM, encoder 2 chooses the drum lane. Use <strong>GLO</strong> to mix your tracks.</p></div></div>
+   <details class="shortcuts"><summary>Show all keyboard shortcuts <span>↗</span></summary><div class="shortcut-cols"><p><kbd>1</kbd>–<kbd>=</kbd> 12 function keys (FX through REC) · <kbd>Shift</kbd> + <kbd>H</kbd> = hold HOME (display menu)</p><p><kbd>Z X C V B N M , . / Q W E R T Y</kbd> the 16 white keys</p><p><kbd>←</kbd><kbd>→</kbd> select track; <kbd>↑</kbd><kbd>↓</kbd> BPM</p><p><kbd>[</kbd><kbd>]</kbd> octave; <kbd>Space</kbd> Play; <kbd>Shift</kbd> + <kbd>R</kbd> REC</p><p><kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> save project</p></div></details>
   </div>
-  <div class="health-pane"><div class="section-top"><span class="eyebrow">PROTOTYP-DIAGNOSTIK</span><span class="small-mono">BROWSER · NICHT FM1 CPU</span></div>
-   <div class="stat-grid"><div><span>STIMMEN</span><strong id="statVoices">0 / 8</strong></div><div><span>AUTOMATION</span><strong id="statAutomation">0 / 128</strong></div><div><span>STEP-TIMING</span><strong id="statLate">0 late</strong></div><div><span>AUDIO-LATENZ*</span><strong id="statLatency">—</strong></div></div>
-   <p class="notes">*Vom Browser gemeldete Basislatenz, <strong>keine gemessene End-to-End-Latenz</strong>. Die Werte erlauben keine Aussage über die CPU-Auslastung des FM1.</p>
-   <div class="utility-actions"><button id="runTests" type="button" class="ui-button">✓ Logik-Selbsttest starten</button><button id="panic" type="button" class="ui-button subtle">■ All notes off</button><button id="clearMotion" type="button" class="ui-button subtle">⌫ Automation der Spur löschen</button></div>
-   <div id="testResult" class="test-result" role="status" aria-live="polite">Bereit für die Selbsttests.</div>
+  <div class="health-pane"><div class="section-top"><span class="eyebrow">PROTOTYPE DIAGNOSTICS</span><span class="small-mono">BROWSER · NOT FM1 CPU</span></div>
+   <div class="stat-grid"><div><span>VOICES</span><strong id="statVoices">0 / 8</strong></div><div><span>AUTOMATION</span><strong id="statAutomation">0 / 128</strong></div><div><span>STEP-TIMING</span><strong id="statLate">0 late</strong></div><div><span>AUDIO LATENCY*</span><strong id="statLatency">—</strong></div></div>
+   <p class="notes">*Browser-reported base audio latency, <strong>not measured end-to-end latency</strong>. These numbers cannot predict FM1 CPU usage.</p>
+   <div class="utility-actions"><button id="runTests" type="button" class="ui-button">✓ Run logic self-tests</button><button id="panic" type="button" class="ui-button subtle">■ All notes off</button><button id="clearMotion" type="button" class="ui-button subtle">⌫ Clear track automation</button></div>
+   <div id="testResult" class="test-result" role="status" aria-live="polite">Ready to run self-tests.</div>
   </div>
  </section>
- <footer><span>FM-XY by Middle Age Engineering · eigenständiger Browser-Simulator. Danke an Felucca, ORBIT, X0X und die Community. Keine offizielle Verbindung zu Teenage Engineering oder M-VAVE.</span><span>Sampling folgt in V2 · Keine Installation auf dem FM1</span></footer>
+ <footer><span>FM-XY by Middle Age Engineering · independent browser simulator. Thanks to Felucca, ORBIT, X0X and the community. Not affiliated with Teenage Engineering or M-VAVE.</span><span>Sampling is planned for V2 · FM1 installation not available</span></footer>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
 "use strict";
 /* --- core.mjs --- */
 /** FM-XY portable model (no browser dependencies). */
-const VERSION='0.1.15';
+const VERSION='0.1.16';
 const TRACK_NAMES=['CHORD','BASS','LEAD','DRUM'];
 let TRACK_COLORS=['#287cff','#1ecc70','#ffffff','#ff621a'];
 const NOTE_NAMES=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
@@ -169,6 +169,23 @@ function diatonicChord(root,scale,degree){const d=((degree%7)+7)%7;return {root:
 function scaleDegreeIndex(root,key,scale){const rel=((root-key)%12+12)%12,steps=SCALES[scale]||SCALES.minor;const exact=steps.indexOf(rel);if(exact>=0)return exact;let best=0,dist=99;steps.forEach((n,i)=>{const d=Math.min((rel-n+12)%12,(n-rel+12)%12);if(d<dist){dist=d;best=i;}});return best;}
 const PROGRESSION_HINTS={major:[[{deg:4,cue:'LIFT',mood:'move forward'},{deg:5,cue:'SOFT TURN',mood:'stay gentle'}],[{deg:4,cue:'PUSH',mood:'build tension'},{deg:0,cue:'OPEN',mood:'land softly'}],[{deg:5,cue:'DRIFT',mood:'open up'},{deg:3,cue:'WARM',mood:'smooth pivot'}],[{deg:4,cue:'RISE',mood:'ask for motion'},{deg:0,cue:'HOME',mood:'resolve now'}],[{deg:0,cue:'ANSWER',mood:'clear resolve'},{deg:5,cue:'DETOUR',mood:'keep it open'}],[{deg:3,cue:'WARM',mood:'steady glow'},{deg:1,cue:'MOVE',mood:'push onward'}],[{deg:0,cue:'RESOLVE',mood:'go home'},{deg:2,cue:'OPEN',mood:'light release'}]],minor:[[{deg:3,cue:'ANSWER',mood:'steady reply'},{deg:5,cue:'LIFT',mood:'go brighter'}],[{deg:4,cue:'TENSION',mood:'lean ahead'},{deg:0,cue:'RESOLVE',mood:'back home'}],[{deg:6,cue:'RISE',mood:'open horizon'},{deg:5,cue:'WARM',mood:'soft colour'}],[{deg:6,cue:'PUSH',mood:'create motion'},{deg:0,cue:'HOME',mood:'back to center'}],[{deg:0,cue:'ANSWER',mood:'clear resolve'},{deg:5,cue:'LIFT',mood:'brighter turn'}],[{deg:2,cue:'GLOW',mood:'rich colour'},{deg:6,cue:'PUSH',mood:'keep moving'}],[{deg:0,cue:'RESOLVE',mood:'finish strong'},{deg:2,cue:'OPEN',mood:'keep it wide'}]]};
 function suggestNextChords(state){const scale=state.scale==='major'?'major':'minor';const degree=scaleDegreeIndex(state.chord.root,state.key,scale);const templates=(PROGRESSION_HINTS[scale]||PROGRESSION_HINTS.minor)[degree]||[];return templates.slice(0,2).map((t,i)=>({cue:t.cue,mood:t.mood,primary:i===0,chord:{...diatonicChord(state.key,scale,t.deg),voicing:state.chord.voicing,style:state.chord.style}}));}
+/* Playing the keyboard must never overwrite the ROOT/TYPE/VOICING/STYLE editing state.
+ * CHORD: white key 1 auditions the selected chord, 2 / 3 the two suggestions.
+ * Any other key auditions the selected chord (no hidden TYPE changes).
+ * KEY: the first 7 white keys audition scale degrees without editing the chord.
+ * No allocations or extra voices beyond the existing synth scheduling. */
+function chordForPerformanceKey(state,black,index){
+ const selected={...state.chord};
+ if(state.page==='CHORD'&&!black&&(index===1||index===2)){
+  const next=suggestNextChords(state)[index-1];
+  return next?{...next.chord}:selected;
+ }
+ if(state.page==='KEY'&&!black&&index<7){
+  const fromScale=diatonicChord(state.key,state.scale,index);
+  return {...fromScale,voicing:selected.voicing,style:selected.style};
+ }
+ return selected;
+}
 const midiToHz=n=>440*Math.pow(2,(n-69)/12);
 const makeEmptyPatterns=()=>Array.from({length:4},()=>Array.from({length:4},()=>Array(16).fill(null)));
 const C=(root,type,voicing='OPEN',style='BLOCK',duration=4)=>({kind:'chord',root,type,voicing,style,duration});
@@ -220,7 +237,7 @@ const pct=n=>`${Math.round(n*100)}%`;
 const continuous=(label,s,k,opts={})=>({label,value:opts.format?opts.format(s[k]):pct(s[k]),norm:clamp01(s[k]),param:k,set:v=>{s[k]=clamp01(v);},automatable:['cutoff','resonance','delay','level','tone','release'].includes(k)});
 const choices=(label,items,get,set)=>{let ix=Math.max(0,items.indexOf(get()));return{label,value:String(items[ix]),norm:items.length===1?0:ix/(items.length-1),set:v=>set(items[Math.round(clamp01(v)*(items.length-1))]),automatable:false};};
 const num=(label,min,max,get,set,unit='')=>({label,value:`${Math.round(get())}${unit}`,norm:clamp01((get()-min)/(max-min)),set:v=>set(Math.round(min+clamp01(v)*(max-min))),automatable:false});
-const pageHelp={HOME:['HOME / IDEA','Pattern, Tonart, Skala und Swing – deine musikalische Übersicht.'],CHORD:['CHORD LAB','Akkord einstellen und live spielen.'],KEY:['KEY / SCALE','Tonart und Tonleiter für Akkordtasten.'],SEQ:['STEP SEQUENCER','16 weiße Tasten ändern die Steps.'],LOOP:['LOOP / PATTERN','REC nimmt Noten und Reglerbewegungen auf.'],SOUND:['SOUND / PATCH','Schnelle Sounds, 808/909 und FM-Presets.'],FX:['FX / MOTION','Filter während REC drehen: Automation.'],ENV:['ENVELOPE','Attack, Decay, Sustain, Release.'],LFO:['MODULATION','LFO moduliert die Filterfrequenz.'],MIX:['GLO / PERFORMANCE','Regler 1–4: Pegel. Weiße Tasten 1–4: Mute, 5–8: Solo.'],ARP:['ARPEGGIATOR','Arpeggio aus Akkordtönen erzeugen.']};
+const pageHelp={HOME:['HOME / IDEA','Patterns, key, scale and swing at a glance.'],CHORD:['CHORD LAB','Choose ROOT and TYPE, then play your chord.'],KEY:['KEY / SCALE','Set your key and scale; keys 1–7 audition harmonized degrees.'],SEQ:['STEP SEQUENCER','The 16 white keys edit the steps.'],LOOP:['LOOP / PATTERN','REC captures notes and knob movements.'],SOUND:['SOUND / PATCH','Quick sounds, 808/909 and FM presets.'],FX:['FX / MOTION','Move the filter during REC to record automation.'],ENV:['ENVELOPE','Attack, Decay, Sustain, Release.'],LFO:['MODULATION','The LFO modulates filter cutoff.'],MIX:['GLO / PERFORMANCE','Encoders 1–4: track levels. White keys 1–4: mute, 5–8: solo.'],ARP:['ARPEGGIATOR','Arpeggiate the notes of your chord.']};
 const pages=['HOME','CHORD','KEY','SEQ','LOOP','SOUND','FX','ENV','LFO','MIX','ARP','SETUP'];
 function controlSet(s){const t=s.tracks[s.selectedTrack],p=s.page;
  if(p==='CHORD')return[
@@ -872,8 +889,8 @@ function shiftMenuValue(dir){const d=menuDescriptors()[setupRow];if(!d)return;co
 function showSplash(ms=3500){splashStarted=performance.now();splashUntil=splashStarted+ms;}
 function splashActive(){return performance.now()<splashUntil;}
 function openSetup(){
- if(s.page==='SETUP'){setPage(setupReturnPage);toast('Menü geschlossen.');return;}
- setupReturnPage=s.page;setupTab=0;setupRow=0;setPage('SETUP');toast('Display-Menü · ALGORITHM=Reiter · PRESETS=Zeile');
+ if(s.page==='SETUP'){setPage(setupReturnPage);toast('Menu closed.');return;}
+ setupReturnPage=s.page;setupTab=0;setupRow=0;setPage('SETUP');toast('Display menu · ALGORITHM=tabs · PRESETS=rows');
 }
 
 const actionNames=['FX','SCL','ENV','LFO','EDIT','GLO','HOME','SAVE','ARP','SEQ','PLAY','REC'];
@@ -912,9 +929,9 @@ for(let i=0;i<12;i++){
 }
 for(let b of document.querySelectorAll('.octave'))b.addEventListener('click',()=>dispatchAction(b.dataset.action));
 function buildKeys(){const el=$('pianoKeys'),white=getWhiteMidiKeys(),black=getBlackMidiKeys();
- white.forEach((m,i)=>{let key=document.createElement('button');key.type='button';key.className='piano-key white';key.style.left=`calc(${i*6.25}% + 2px)`;key.style.width='calc(6.25% - 4px)';key.style.setProperty('--key-color',rightColors[0]);key.textContent=i<7?String(i+1):'';key.dataset.midi=m;key.dataset.whiteIndex=i;key.setAttribute('aria-label',`Weiße Taste ${i+1}, ${NOTE_NAMES[m%12]}`);key.title=`Taste ${i+1} (${whiteKeyboard[i]?.toUpperCase()})`;
+ white.forEach((m,i)=>{let key=document.createElement('button');key.type='button';key.className='piano-key white';key.style.left=`calc(${i*6.25}% + 2px)`;key.style.width='calc(6.25% - 4px)';key.style.setProperty('--key-color',rightColors[0]);key.textContent=i<7?String(i+1):'';key.dataset.midi=m;key.dataset.whiteIndex=i;key.setAttribute('aria-label',`White key ${i+1}, ${NOTE_NAMES[m%12]}`);key.title=`Key ${i+1} (${whiteKeyboard[i]?.toUpperCase()}) — CHORD: ${i===0?'current chord':i===1?'suggestion 1':i===2?'suggestion 2':'current chord'}; KEY: scale degree ${i+1}`;
  key.addEventListener('pointerdown',e=>{e.preventDefault();key.setPointerCapture(e.pointerId);pressKey(m,false,i);});key.addEventListener('pointerup',()=>releaseKey(m));key.addEventListener('pointercancel',()=>releaseKey(m));el.append(key);keysByMidi.set(m,key);});
- black.forEach((m,i)=>{let prev=white.filter(n=>n<m).length;let key=document.createElement('button');key.type='button';key.className='piano-key black';key.style.left=`calc(${prev*6.25}% - 2.5%)`;key.style.width='4.9%';key.dataset.midi=m;key.title=`Chromatic key ${NOTE_NAMES[m%12]}`;key.setAttribute('aria-label',`Schwarze Taste ${NOTE_NAMES[m%12]}`);
+ black.forEach((m,i)=>{let prev=white.filter(n=>n<m).length;let key=document.createElement('button');key.type='button';key.className='piano-key black';key.style.left=`calc(${prev*6.25}% - 2.5%)`;key.style.width='4.9%';key.dataset.midi=m;key.title=`Chromatic key ${NOTE_NAMES[m%12]}`;key.setAttribute('aria-label',`Black key ${NOTE_NAMES[m%12]}`);
  key.addEventListener('pointerdown',e=>{e.preventDefault();key.setPointerCapture(e.pointerId);pressKey(m,true,i);});key.addEventListener('pointerup',()=>releaseKey(m));key.addEventListener('pointercancel',()=>releaseKey(m));el.append(key);keysByMidi.set(m,key);});}
 function previewChordOnKeyboard(chord){const target=chord?chordNotes(chord,s.octave).map(n=>((n%12)+12)%12):[];keysByMidi.forEach((el,midi)=>el.classList.toggle('suggested',target.includes(((midi%12)+12)%12)));}
 buildKeys();
@@ -923,14 +940,14 @@ function setPage(page){if(!pages.includes(page))return;if(page==='SETUP'&&s.page
 function updateAudioParams(){audio.setMaster(s.master);for(let i=0;i<4;i++){audio.applyTrack(i,s.tracks[i]);audio.setLfo(i,s.tracks[i]);}audio.applyMix(s);}
 function applyKnob(isLeft,index,norm){const descriptors=isLeft?leftControls(s):controlSet(s),desc=descriptors[index];if(!desc)return;let oldTrack=s.selectedTrack; if(!isLeft){uiActiveEncoder=index;if(s.page==='SETUP')setupRow=index;}
  desc.set(clamp(norm,0,1));
- if(!isLeft&&desc.automatable&&s.recording&&s.playing){const track=desc.trackIndex??oldTrack;const step=nextRecordStep();let ok=recordAutomation(s,track,step,desc.param,clamp(norm,0,1));if(!ok)toast('Automation voll: 128 Events (sichere Begrenzung).');}
+ if(!isLeft&&desc.automatable&&s.recording&&s.playing){const track=desc.trackIndex??oldTrack;const step=nextRecordStep();let ok=recordAutomation(s,track,step,desc.param,clamp(norm,0,1));if(!ok)toast('Automation full: 128 events (safe limit).');}
  updateAudioParams();updateUI();}
 let lastParams='';
 function updateUI(){
  const knobs=controlSet(s),left=leftControls(s);let sets=[[leftEls,left],[rightEls,knobs]];
  for(let [els,data] of sets){data.forEach((d,i)=>{const el=els[i];el.querySelector('.knob-label').textContent=d.label;el.querySelector('.knob-value').textContent=d.value;let face=el.querySelector('.knob-face');face.style.setProperty('--angle',`${-135+270*d.norm}deg`);face.setAttribute('aria-valuenow',String(Math.round(d.norm*100)));face.setAttribute('aria-valuetext',d.value);});}
  for(let [name,el]of hardwareElements){el.classList.toggle('is-active',({CHORD:'SCL',KEY:'SCL',SEQ:'SEQ',LOOP:'SEQ',FX:'FX',SOUND:'EDIT',ENV:'ENV',LFO:'LFO',MIX:'GLO',ARP:'ARP',HOME:'HOME',SETUP:'HOME'}[s.page]===name));el.classList.toggle('is-playing',name==='PLAY'&&s.playing);el.classList.toggle('is-recording',name==='REC'&&(s.recording||s.armed));}
- $('onDeviceStatus').textContent=s.recording?'RECORD':s.playing?'PLAY':'READY';$('topPlay').textContent=s.playing?'■ Stop':'▶ Play';$('topRec').textContent=s.recording?'● Recording':s.armed?'● Armed':'● Rec';$('topRec').classList.toggle('is-active',s.recording);$('keyHint').textContent=s.page==='MIX'?'GLO · KEYS 1–4 MUTE / 5–8 SOLO':s.page==='SEQ'?'SEQ MODE · 16 STEPS':s.selectedTrack===0?'CHORD · 7 SCALE DEGREES':s.selectedTrack===3?'DRUM · 808/909 KIT':TRACK_NAMES[s.selectedTrack]+' · CHROMATIC';
+ $('onDeviceStatus').textContent=s.recording?'RECORD':s.playing?'PLAY':'READY';$('topPlay').textContent=s.playing?'■ Stop':'▶ Play';$('topRec').textContent=s.recording?'● Recording':s.armed?'● Armed':'● Rec';$('topRec').classList.toggle('is-active',s.recording);$('keyHint').textContent=s.page==='MIX'?'GLO · KEYS 1–4 MUTE / 5–8 SOLO':s.page==='SEQ'?'SEQ · 16 STEPS':s.selectedTrack===0&&s.page==='CHORD'?'CHORD · KEY 1 CURRENT · 2/3 SUGGESTIONS':s.selectedTrack===0&&s.page==='KEY'?'SCALE · KEYS 1–7 DIATONIC CHORDS':s.selectedTrack===0?'CHORD · CURRENT ROOT + TYPE':s.selectedTrack===3?'DRUM · 808/909 KIT':TRACK_NAMES[s.selectedTrack]+' · CHROMATIC';
  const [title,help]=pageHelp[s.page]||pageHelp.HOME;$('pageTitle').textContent=title;$('pageHelp').textContent=help;const instrument=activeInstrument(s);
  $('trackPill').textContent=`${instrument.track} · ${instrument.patch}`;
  $('trackPill').title=`Track ${instrument.index+1}: ${instrument.track}, Instrument ${instrument.patch}`;
@@ -947,16 +964,16 @@ function updateUI(){
  }
 for(let i=0;i<4;i++){let btn=document.createElement('button');btn.className='track-tab';btn.style.setProperty('--tab-color',TRACK_COLORS[i]);btn.textContent=TRACK_NAMES[i].slice(0,i===3?4:3);btn.dataset.track=i;btn.title=TRACK_NAMES[i];btn.addEventListener('click',()=>{s.selectedTrack=i;updateUI();});$('trackTabs').append(btn);}
 for(let page of ['HOME','CHORD','KEY','SEQ','LOOP','SOUND','FX','ENV','LFO','MIX','ARP','SETUP']){let btn=document.createElement('button');btn.type='button';btn.className='page-tab';btn.textContent=page==='MIX'?'GLO':page;btn.dataset.page=page;btn.addEventListener('click',()=>page==='SETUP'?openSetup():setPage(page));$('pageTabs').append(btn);}
-async function enableSound(){try{await audio.ensure();updateAudioParams();$('audioStatus').classList.add('on');$('audioStatus').lastChild.textContent=' Audio bereit';$('audioToggle').textContent='♪ Audio bereit';return true;}
+async function enableSound(){try{await audio.ensure();updateAudioParams();$('audioStatus').classList.add('on');$('audioStatus').lastChild.textContent=' Audio ready';$('audioToggle').textContent='♪ Audio ready';return true;}
  catch(e){lastAudioError=String(e);toast('Audio konnte nicht gestartet werden: '+e.message);return false;}}
-async function togglePlay(){if(s.playing){s.playing=false;s.recording=false;s.armed=false;audio.panic();toast('Wiedergabe gestoppt');updateUI();return;}
+async function togglePlay(){if(s.playing){s.playing=false;s.recording=false;s.armed=false;audio.panic();toast('Playback stopped');updateUI();return;}
  await enableSound();s.playing=true;s.recording=!!s.armed;s.armed=false;s.step=0;nextIndex=0;nextTime=(audio.enabled?audio.now:performance.now()/1000)+.065;
- toast(s.recording?'Recording läuft — spiele Noten oder drehe am Filter.':'Loop läuft · REC aktiviert Overdub.');updateUI();}
-function toggleRecord(){if(!s.playing){s.armed=!s.armed;toast(s.armed?'REC bereit. PLAY startet Aufnahme.':'REC nicht mehr bereit.');}
- else{s.recording=!s.recording;toast(s.recording?'OVERDUB: Noten und Reglerbewegungen werden aufgenommen.':'OVERDUB beendet.');}
+ toast(s.recording?'Recording — play keys or move the filter.':'Loop playing · REC enables overdub.');updateUI();}
+function toggleRecord(){if(!s.playing){s.armed=!s.armed;toast(s.armed?'REC armed. PLAY startet Aufnahme.':'REC disarmed.');}
+ else{s.recording=!s.recording;toast(s.recording?'OVERDUB: Recording notes and knob movements.':'OVERDUB stopped.');}
  updateUI();}
-function saveProject(){try{localStorage.setItem('mini-opxy-fm1-v1',JSON.stringify(portableProject(s)));toast('Projekt lokal im Browser gespeichert.');}
- catch(e){toast('Lokales Speichern hier nicht verfügbar. Bitte JSON exportieren.');}}
+function saveProject(){try{localStorage.setItem('mini-opxy-fm1-v1',JSON.stringify(portableProject(s)));toast('Project saved locally in your browser.');}
+ catch(e){toast('Local storage unavailable. Export JSON instead.');}}
 function dispatchAction(name){switch(name){
  case 'FX':setPage('FX');break;case 'SCL':setPage(s.page==='CHORD'?'KEY':'CHORD');break;
  case 'ENV':setPage('ENV');break;case 'LFO':setPage('LFO');break;case 'EDIT':setPage('SOUND');break;case 'GLO':setPage('MIX');break;
@@ -983,10 +1000,8 @@ async function pressKey(midi,black=false,index=0){let element=keysByMidi.get(mid
  if(s.page==='SEQ'&&black){if(s.selectedTrack===3){s.selectedLane=index%4;toast('Drum lane: '+DRUM_LANES[s.selectedLane]);updateUI();return;}}
  await enableSound();const t=s.selectedTrack,when=audio.now+.01,dur=.68,setting=s.tracks[t];
  if(t===3){const lane=index%4;audio.playDrum(lane,setting.drumKit,when);if(s.recording&&s.playing)recordNote(s,3,nextRecordStep(),{kind:'drums',hits:[lane]});}
- else if(t===0){let chord;
-  if(!black&&index<7){chord=diatonicChord(s.key,s.scale,index);chord.voicing=s.chord.voicing;chord.style=s.chord.style;s.chord={...chord};}
-  else if(black){let types=['m7','maj7','7','min','maj','m9','sus2','sus4','dim'];s.chord.type=types[index%types.length];chord={...s.chord};}
-  else {const ns=chordNotes(s.chord,s.octave);audio.playNote(ns[(index-7)%ns.length]+(index>12?12:0),t,when,.43,setting,.75);return;}
+ else if(t===0){
+  const chord=chordForPerformanceKey(s,black,index);
   audio.releaseTrackVoices(t,when);
   if(s.arpMode!=='OFF')audio.playArpChord(chord,t,when,dur,setting,s);else audio.playChord(chord,t,when,dur,setting,s.octave);
   if(s.recording&&s.playing)recordNote(s,0,nextRecordStep(),{kind:'chord',...chord,duration:4});
@@ -1008,10 +1023,10 @@ function frame(now){if(!frame.last||now-frame.last>32){frame.last=now;const ctrl
  if(!frame.stats||now-frame.stats>300){frame.stats=now;let st=audio.stats();$('statVoices').textContent=`${st.voices} / ${st.maxVoices}`;$('statLate').textContent=`${st.late} late`;$('statLatency').textContent=st.baseLatencyMs===null?'—':st.baseLatencyMs+' ms';$('statAutomation').textContent=`${s.automation.length} / 128`;}
  requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
-function exportProject(){const payload=JSON.stringify(portableProject(s),null,2),blob=new Blob([payload],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fmxy-project-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);toast('Projekt als JSON exportiert.');}
+function exportProject(){const payload=JSON.stringify(portableProject(s),null,2),blob=new Blob([payload],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fmxy-project-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);toast('Project exported as JSON.');}
 async function loadFile(ev){let file=ev.target.files?.[0];if(!file)return;
- try{if(file.size>200000)throw Error('Project too large (limit: 200 KB).');const data=JSON.parse(await file.text()),newState=importProject(data);s.playing=false;audio.panic();s=newState;updateAudioParams();updateUI();toast('Projekt importiert.');}
- catch(err){toast('Projekt nicht übernommen: '+err.message);}finally{ev.target.value='';}}
+ try{if(file.size>200000)throw Error('Project too large (limit: 200 KB).');const data=JSON.parse(await file.text()),newState=importProject(data);s.playing=false;audio.panic();s=newState;updateAudioParams();updateUI();toast('Project imported.');}
+ catch(err){toast('Project not imported: '+err.message);}finally{ev.target.value='';}}
 function runSelfTests(){let count=0,tests=[];function assert(ok,name){count++;if(!ok)tests.push(name);}
  let m=demoProject();assert(m.patterns.length===4,'4 patterns');assert(m.patterns.every(p=>p.length===4),'4 tracks');assert(m.patterns[0][3].length===16,'16 steps');assert(getWhiteMidiKeys().length===16,'16 white keys');assert(getBlackMidiKeys().length===11,'11 black keys');
  let chord=diatonicChord(0,'minor',0);assert(chord.type==='m7'&&chord.root===0,'minor tonic chord');assert(chordNotes(chord).length===4,'four-note chord');assert(chordLabel(chord)==='Cm7','chord label');
@@ -1019,16 +1034,26 @@ function runSelfTests(){let count=0,tests=[];function assert(ok,name){count++;if
  for(let j=0;j<128;j++)assert(recordAutomation(m,Math.floor(j/16)%4,j%16,'cutoff',j/127,Math.floor(j/64))===true,`write automation ${j}`);
  assert(m.automation.length<=128,'bounded automation');assert(!recordAutomation(m,2,13,'tone',.8,3),'full pool rejects new');assert(recordAutomation(m,0,0,'cutoff',.33,0),'existing motion overwritable');
  assert(JSON.stringify(portableProject(importProject(portableProject(m)))).length>0,'serialize and import');
- const result=$('testResult');result.className='test-result '+(tests.length?'fail':'pass');result.textContent=tests.length?`✕ ${count-tests.length}/${count} passed: ${tests.slice(0,3).join(', ')}`:`✓ ${count} Browser-Logikprüfungen bestanden. Keine FM1-Hardwareprüfung.`;
+ m.page='CHORD';m.key=0;m.scale='minor';m.chord={root:5,type:'m7',voicing:'OPEN',style:'BLOCK'};
+ const expectedChord=JSON.stringify(m.chord);
+ assert(chordLabel(chordForPerformanceKey(m,false,0))==='Fm7','key 1 plays chosen root + type');
+ assert(chordLabel(chordForPerformanceKey(m,true,0))==='Fm7','black key does not change chord type');
+ const hint=suggestNextChords(m);
+ assert(chordLabel(chordForPerformanceKey(m,false,1))===chordLabel(hint[0].chord),'key 2 auditions suggestion 1');
+ assert(chordLabel(chordForPerformanceKey(m,false,2))===chordLabel(hint[1].chord),'key 3 auditions suggestion 2');
+ assert(JSON.stringify(m.chord)===expectedChord,'chord settings stay intact while auditioning');
+ m.page='KEY';assert(chordLabel(chordForPerformanceKey(m,false,0))==='Cm7','scale keyboard previews tonic in KEY mode');
+ assert(JSON.stringify(m.chord)===expectedChord,'KEY mode does not overwrite chosen chord');
+ const result=$('testResult');result.className='test-result '+(tests.length?'fail':'pass');result.textContent=tests.length?`✕ ${count-tests.length}/${count} passed: ${tests.slice(0,3).join(', ')}`:`✓ ${count} browser logic checks passed. No FM1 hardware test.`;
  return {pass:tests.length===0,count,errors:tests};}
 $('audioToggle').addEventListener('click',enableSound);
 $('topPlay').addEventListener('click',togglePlay);$('topRec').addEventListener('click',toggleRecord);$('themeToggle').addEventListener('click',toggleTheme);
 $('splashReplay').addEventListener('click',()=>showSplash(4100));$('displaySettings').addEventListener('click',openSetup);
 $('saveProject').addEventListener('click',saveProject);$('exportProject').addEventListener('click',exportProject);
 $('importProject').addEventListener('click',()=>$('projectFile').click());$('projectFile').addEventListener('change',loadFile);
-$('resetProject').addEventListener('click',()=>{if(!confirm('Demo wiederherstellen? Nicht exportierte Änderungen gehen verloren.'))return;s.playing=false;audio.panic();s=demoProject();try{localStorage.removeItem('mini-opxy-fm1-v1')}catch{}updateAudioParams();updateUI();toast('Demo wiederhergestellt.');});
+$('resetProject').addEventListener('click',()=>{if(!confirm('Reset the demo? Unexported changes will be lost.'))return;s.playing=false;audio.panic();s=demoProject();try{localStorage.removeItem('mini-opxy-fm1-v1')}catch{}updateAudioParams();updateUI();toast('Demo restored.');});
 $('runTests').addEventListener('click',runSelfTests);
-$('panic').addEventListener('click',()=>{audio.panic();toast('Alle aktiven Synth-Stimmen gestoppt.');});
+$('panic').addEventListener('click',()=>{audio.panic();toast('All active synth voices stopped.');});
 $('clearMotion').addEventListener('click',()=>{let n=clearAutomation(s,s.selectedTrack);toast(`${n} Automation-Events in ${TRACK_NAMES[s.selectedTrack]} gelöscht.`);updateUI();});
 $('prevPage').addEventListener('click',()=>setPage(pages[(pages.indexOf(s.page)+pages.length-1)%pages.length]));
 $('nextPage').addEventListener('click',()=>setPage(pages[(pages.indexOf(s.page)+1)%pages.length]));
@@ -1047,7 +1072,7 @@ window.addEventListener('blur',()=>{heldKeyboard.clear();for(let key of keysByMi
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&s.playing){s.playing=false;s.recording=false;s.armed=false;audio.panic();updateUI();}});
 try{const storedTheme=localStorage.getItem('mini-opxy-theme-v017');setDisplayTheme(storedTheme||'mono');}catch{setDisplayTheme('mono');}
 try{const saved=localStorage.getItem('fmxy-ui-config-v1');if(saved){const x=JSON.parse(saved);splashEnabled=x.splashEnabled!==false;motionEnabled=x.motionEnabled!==false;chordHintEnabled=x.chordHintEnabled!==false;}}catch{}
-try{const raw=localStorage.getItem('mini-opxy-fm1-v1');if(raw){s=importProject(JSON.parse(raw));toast('Dein zuletzt gespeichertes Projekt wurde geladen.');}}catch{}
+try{const raw=localStorage.getItem('mini-opxy-fm1-v1');if(raw){s=importProject(JSON.parse(raw));toast('Your last saved project has been restored.');}}catch{}
 if(splashEnabled)showSplash(3600);
 updateUI();
 window.__miniOPXY={getState:()=>structuredClone(s),getInstrument:()=>activeInstrument(s),selfTest:runSelfTests,dispatch:dispatchAction,changeKnob:applyKnob,reset:()=>{s=demoProject();updateUI();showSplash(2400);},getAudioStats:()=>audio.stats(),setTheme:setDisplayTheme,openSetup,showSplash,getMenu:()=>({tab:MENU_TABS[setupTab],row:setupRow,items:menuDescriptors().map(d=>({label:d.label,value:d.value})),template:displayTemplate,palette:displayPalette}),menuValue:shiftMenuValue};
