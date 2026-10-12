@@ -998,3 +998,60 @@ function scheduler(){if(!s.playing)return;let now=audio.enabled?audio.now:perfor
  let loops=0;
  while(nextTime<now+.1&&loops++<8){let i=nextIndex,at=nextTime;
   if(i===0&&s.nextPattern!==null){s.pattern=s.nextPattern;s.nextPattern=null;}
+  if(audio.enabled)audio.playStep(s,s.pattern,i,at,stepDur);
+  let delayMs=Math.max(0,(at-now)*1000);setTimeout(()=>{if(s.playing)s.step=i;},delayMs);
+  nextTime+=stepDur*(i%2===0?1+s.swing:1-s.swing);nextIndex=(nextIndex+1)%16;
+ }
+}
+setInterval(scheduler,25);
+function frame(now){if(!frame.last||now-frame.last>32){frame.last=now;const ctrls=controlSet(s);drawScreen($('screen'),s,ctrls);let zoom=$('screenZoom').getContext('2d',{alpha:false});zoom.drawImage($('screen'),0,0);}
+ if(!frame.stats||now-frame.stats>300){frame.stats=now;let st=audio.stats();$('statVoices').textContent=`${st.voices} / ${st.maxVoices}`;$('statLate').textContent=`${st.late} late`;$('statLatency').textContent=st.baseLatencyMs===null?'—':st.baseLatencyMs+' ms';$('statAutomation').textContent=`${s.automation.length} / 128`;}
+ requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+function exportProject(){const payload=JSON.stringify(portableProject(s),null,2),blob=new Blob([payload],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fmxy-project-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);toast('Projekt als JSON exportiert.');}
+async function loadFile(ev){let file=ev.target.files?.[0];if(!file)return;
+ try{if(file.size>200000)throw Error('Project too large (limit: 200 KB).');const data=JSON.parse(await file.text()),newState=importProject(data);s.playing=false;audio.panic();s=newState;updateAudioParams();updateUI();toast('Projekt importiert.');}
+ catch(err){toast('Projekt nicht übernommen: '+err.message);}finally{ev.target.value='';}}
+function runSelfTests(){let count=0,tests=[];function assert(ok,name){count++;if(!ok)tests.push(name);}
+ let m=demoProject();assert(m.patterns.length===4,'4 patterns');assert(m.patterns.every(p=>p.length===4),'4 tracks');assert(m.patterns[0][3].length===16,'16 steps');assert(getWhiteMidiKeys().length===16,'16 white keys');assert(getBlackMidiKeys().length===11,'11 black keys');
+ let chord=diatonicChord(0,'minor',0);assert(chord.type==='m7'&&chord.root===0,'minor tonic chord');assert(chordNotes(chord).length===4,'four-note chord');assert(chordLabel(chord)==='Cm7','chord label');
+ let before=JSON.stringify(m.patterns[2][0][3]);toggleStep(m,0,3,2);assert(m.patterns[2][0][3]?.kind==='chord','add step');toggleStep(m,0,3,2);assert(JSON.stringify(m.patterns[2][0][3])===before,'toggle step');
+ for(let j=0;j<128;j++)assert(recordAutomation(m,Math.floor(j/16)%4,j%16,'cutoff',j/127,Math.floor(j/64))===true,`write automation ${j}`);
+ assert(m.automation.length<=128,'bounded automation');assert(!recordAutomation(m,2,13,'tone',.8,3),'full pool rejects new');assert(recordAutomation(m,0,0,'cutoff',.33,0),'existing motion overwritable');
+ assert(JSON.stringify(portableProject(importProject(portableProject(m)))).length>0,'serialize and import');
+ const result=$('testResult');result.className='test-result '+(tests.length?'fail':'pass');result.textContent=tests.length?`✕ ${count-tests.length}/${count} passed: ${tests.slice(0,3).join(', ')}`:`✓ ${count} Browser-Logikprüfungen bestanden. Keine FM1-Hardwareprüfung.`;
+ return {pass:tests.length===0,count,errors:tests};}
+$('audioToggle').addEventListener('click',enableSound);
+$('topPlay').addEventListener('click',togglePlay);$('topRec').addEventListener('click',toggleRecord);$('themeToggle').addEventListener('click',toggleTheme);
+$('splashReplay').addEventListener('click',()=>showSplash(4100));$('displaySettings').addEventListener('click',openSetup);
+$('saveProject').addEventListener('click',saveProject);$('exportProject').addEventListener('click',exportProject);
+$('importProject').addEventListener('click',()=>$('projectFile').click());$('projectFile').addEventListener('change',loadFile);
+$('resetProject').addEventListener('click',()=>{if(!confirm('Demo wiederherstellen? Nicht exportierte Änderungen gehen verloren.'))return;s.playing=false;audio.panic();s=demoProject();try{localStorage.removeItem('mini-opxy-fm1-v1')}catch{}updateAudioParams();updateUI();toast('Demo wiederhergestellt.');});
+$('runTests').addEventListener('click',runSelfTests);
+$('panic').addEventListener('click',()=>{audio.panic();toast('Alle aktiven Synth-Stimmen gestoppt.');});
+$('clearMotion').addEventListener('click',()=>{let n=clearAutomation(s,s.selectedTrack);toast(`${n} Automation-Events in ${TRACK_NAMES[s.selectedTrack]} gelöscht.`);updateUI();});
+$('prevPage').addEventListener('click',()=>setPage(pages[(pages.indexOf(s.page)+pages.length-1)%pages.length]));
+$('nextPage').addEventListener('click',()=>setPage(pages[(pages.indexOf(s.page)+1)%pages.length]));
+document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select')||e.ctrlKey||e.metaKey){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveProject();}return;}
+ const key=e.key.toLowerCase();if([' ','arrowleft','arrowright','arrowup','arrowdown','[',']'].includes(key))e.preventDefault();
+ if(key===' '){if(!e.repeat)togglePlay();return;}
+ if((e.altKey&&key==='7')||(e.shiftKey&&key==='h')){if(!e.repeat)openSetup();return;}
+ if(e.shiftKey&&key==='r'){if(!e.repeat)toggleRecord();return;}
+ if(key==='arrowleft'||key==='arrowright'){if(e.repeat)return;if(s.page==='SETUP'){setupTab=(setupTab+(key==='arrowright'?1:3))%4;setupRow=0;updateUI();return;}s.selectedTrack=(s.selectedTrack+(key==='arrowright'?1:3))%4;updateUI();return;}
+ if(key==='arrowup'||key==='arrowdown'){if(s.page==='SETUP'){setupRow=(setupRow+(key==='arrowdown'?1:3))%4;updateUI();return;}s.tempo=clamp(s.tempo+(key==='arrowup'?1:-1),55,190);updateUI();return;}
+ if(key==='['){dispatchAction('OCT-');return;}if(key===']'){dispatchAction('OCT+');return;}
+ const buttonIndex=actionKeys.indexOf(key);if(buttonIndex>=0){if(!e.repeat)dispatchAction(actionNames[buttonIndex]);return;}
+ const index=whiteKeyboard.indexOf(key);if(index>=0&&!heldKeyboard.has(key)){heldKeyboard.add(key);pressKey(getWhiteMidiKeys()[index],false,index);} });
+document.addEventListener('keyup',e=>{let k=e.key.toLowerCase(),i=whiteKeyboard.indexOf(k);if(i>=0){heldKeyboard.delete(k);releaseKey(getWhiteMidiKeys()[i]);}});
+window.addEventListener('blur',()=>{heldKeyboard.clear();for(let key of keysByMidi.values())key.classList.remove('active');});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&s.playing){s.playing=false;s.recording=false;s.armed=false;audio.panic();updateUI();}});
+try{const storedTheme=localStorage.getItem('mini-opxy-theme-v017');setDisplayTheme(storedTheme||'mono');}catch{setDisplayTheme('mono');}
+try{const saved=localStorage.getItem('fmxy-ui-config-v1');if(saved){const x=JSON.parse(saved);splashEnabled=x.splashEnabled!==false;motionEnabled=x.motionEnabled!==false;chordHintEnabled=x.chordHintEnabled!==false;}}catch{}
+try{const raw=localStorage.getItem('mini-opxy-fm1-v1');if(raw){s=importProject(JSON.parse(raw));toast('Dein zuletzt gespeichertes Projekt wurde geladen.');}}catch{}
+if(splashEnabled)showSplash(3600);
+updateUI();
+window.__miniOPXY={getState:()=>structuredClone(s),getInstrument:()=>activeInstrument(s),selfTest:runSelfTests,dispatch:dispatchAction,changeKnob:applyKnob,reset:()=>{s=demoProject();updateUI();showSplash(2400);},getAudioStats:()=>audio.stats(),setTheme:setDisplayTheme,openSetup,showSplash,getMenu:()=>({tab:MENU_TABS[setupTab],row:setupRow,items:menuDescriptors().map(d=>({label:d.label,value:d.value})),template:displayTemplate,palette:displayPalette}),menuValue:shiftMenuValue};
+
+</script>
+</body>
+</html>
