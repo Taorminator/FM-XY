@@ -12,14 +12,17 @@ import shutil
 import subprocess
 
 UPSTREAM = "ef1f561b6b105f20350f6b1eac0dc0789a357f00"
+STAGED = {}
 
 
 def patch_once(path: Path, old: str, new: str) -> None:
-    source = path.read_text(encoding="utf-8")
+    source = STAGED.get(path)
+    if source is None:
+        source = path.read_text(encoding="utf-8")
     count = source.count(old)
     if count != 1:
         raise RuntimeError(f"{path}: expected one anchor, found {count} for {old[:80]!r}")
-    path.write_text(source.replace(old, new, 1), encoding="utf-8")
+    STAGED[path] = source.replace(old, new, 1)
     print(f"FM-XY PATCH {path}")
 
 
@@ -31,17 +34,9 @@ def install(repo: Path) -> None:
     if sha != UPSTREAM:
         raise RuntimeError(f"Wrong upstream commit {sha}; expected {UPSTREAM}")
     target = repo / "firmware/src/fmxy_harmony.h"
-    shutil.copyfile(root / "firmware/fmxy_harmony.h", target)
-
-    p = repo / "firmware/src/felucca.c"
-    patch_once(p, '#define FELUCCA_VERSION "v1.5.1"',
-               '#define FELUCCA_VERSION "FM-XY-dev"')
-
     p = repo / "firmware/src/ui_graph.c"
     patch_once(p, '#include "ui_fm6op.c"',
                '#include "fmxy_harmony.h"\n#include "ui_fm6op.c"')
-    # Leave Felucca's original piano visualization as a fallback for
-    # non-major/minor scales. The suggestions are read-only.
     old = """    chord_name(b, (uint32_t)r, mask);
     cv_text_on(14, 8, &AF_M, b, T_TEXT, T_SURF);"""
     new = """    chord_name(b, (uint32_t)r, mask);
@@ -66,7 +61,6 @@ def install(repo: Path) -> None:
             str_cpy(names + str_len(names), N_NOTE[nn[i] % 12u],
                     sizeof names - str_len(names));
         }
-        /* All geometry fits the 240 x 100 graph strip. Labels stay readable. */
         cv_text_on(14, 5, &AF_M, b, T_TEXT, T_SURF);
         cv_text_r(226, 5 + AF_M.asc - AF_S.asc, &AF_S,
                   cap, T_MID, T_SURF);
@@ -102,7 +96,6 @@ BW = "MONO"'''
     patch_once(p,
                '    lcd_fill(SPL_X0, SPL_X0, SPL_SQ, SPL_SQ, T_RAISE);\n    splash_band(',
                '''    lcd_fill(SPL_X0, SPL_X0, SPL_SQ, SPL_SQ, T_RAISE);
-    /* Small fixed pixel constellation: no heap allocation or animation. */
     {
         static const uint8_t dust[][3] = {
             {8, 16, 3}, {19, 45, 6}, {13, 111, 4},
@@ -128,7 +121,12 @@ BW = "MONO"'''
     {"Independent project. No warranty.", MC_TEXT},
     {"", MC_TEXT},
 ''')
-    print("FM-XY overlay applied. No flash or install action was performed.")
+    if target.exists():
+        raise RuntimeError(f"Already applied: {target}")
+    for path, content in STAGED.items():
+        path.write_text(content, encoding="utf-8")
+    shutil.copyfile(root / "firmware/fmxy_harmony.h", target)
+    print("FM-XY overlay applied. Audio, update and storage code unchanged.")
 
 
 if __name__ == "__main__":
