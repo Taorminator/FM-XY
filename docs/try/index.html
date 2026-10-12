@@ -66,7 +66,7 @@ body.theme-mono .screen-canvas,body.theme-mono .large-screen{image-rendering:pix
      <div class="right-controls"><div id="rightKnobs" class="right-knob-grid"></div><div id="hardwareButtons" class="hardware-buttons"></div><div class="right-meta"><span>FOUR ENCODERS</span><span>12 FUNCTION KEYS</span></div></div>
     </div>
     <div class="keyboard-deck"><div class="deck-head"><span>PERFORMANCE KEYS</span><span id="keyHint">CHORD · KEY 1 CURRENT · 2/3 SUGGESTIONS</span></div><div class="piano-keys" id="pianoKeys" aria-label="27 playable keys"></div></div>
-    <div class="device-bottom"><span>FM-XY <i></i> MIDDLE AGE ENGINEERING</span><span>V0.1.17 · UX / AUDIO SIMULATOR</span></div>
+    <div class="device-bottom"><span>FM-XY <i></i> MIDDLE AGE ENGINEERING</span><span>V0.1.18 · UX / AUDIO SIMULATOR</span></div>
    </div>
    <div class="device-foot"><div class="tip-dot"></div><span><strong>Controls:</strong> Tap HOME for the overview · <strong>hold HOME for 0.6 seconds to open DISPLAY settings</strong> · or use the Display / Themes button above. In the menu: ALGORITHM selects tabs, PRESETS selects rows and encoders 1–4 adjust values. View splash replays the intro.</span></div>
    <div class="mobile-quick"><button type="button" id="prevPage" class="ui-button">← Previous</button><button type="button" id="nextPage" class="ui-button">Next →</button></div>
@@ -84,7 +84,7 @@ body.theme-mono .screen-canvas,body.theme-mono .large-screen{image-rendering:pix
  <section class="below-grid">
   <div class="utility-pane"><div class="section-top"><span class="eyebrow">PROJECT WORKFLOW</span><span class="small-mono">LOCAL TO YOUR BROWSER</span></div>
    <div class="utility-actions"><button id="saveProject" type="button" class="ui-button">↧ Save locally</button><button id="exportProject" type="button" class="ui-button">↓ Export project</button><button id="importProject" type="button" class="ui-button">↑ Import project</button><button id="resetProject" type="button" class="ui-button subtle">↺ Reset demo</button><input id="projectFile" type="file" accept="application/json,.json" hidden></div>
-   <div class="help-grid"><div><h3>Make music</h3><p>Choose <strong>CHORD</strong> and set ROOT and TYPE with the first two encoders. Every key plays a distinct note starting at ROOT. Lit keys show the first suggested next chord. <strong>PLAY</strong> starts the demo loop and <strong>REC</strong> enables overdub. Filter movements on the <strong>FX</strong> screen are recorded during REC.</p></div><div><h3>Step-Sequencer</h3><p><strong>SEQ</strong> opens the 16-step grid. White keys add or remove steps on the selected track. On DRUM, encoder 2 chooses the drum lane. Use <strong>GLO</strong> to mix your tracks.</p></div></div>
+   <div class="help-grid"><div><h3>Make music</h3><p>Choose <strong>CHORD</strong> and set ROOT and TYPE with the first two encoders. Every key triggers a full chord of the selected TYPE, transposed from ROOT. Highlighted keys only show the suggested next chord. <strong>PLAY</strong> starts the demo loop and <strong>REC</strong> enables overdub. Filter movements on the <strong>FX</strong> screen are recorded during REC.</p></div><div><h3>Step-Sequencer</h3><p><strong>SEQ</strong> opens the 16-step grid. White keys add or remove steps on the selected track. On DRUM, encoder 2 chooses the drum lane. Use <strong>GLO</strong> to mix your tracks.</p></div></div>
    <details class="shortcuts"><summary>Show all keyboard shortcuts <span>↗</span></summary><div class="shortcut-cols"><p><kbd>1</kbd>–<kbd>=</kbd> 12 function keys (FX through REC) · <kbd>Shift</kbd> + <kbd>H</kbd> = hold HOME (display menu)</p><p><kbd>Z X C V B N M , . / Q W E R T Y</kbd> the 16 white keys</p><p><kbd>←</kbd><kbd>→</kbd> select track; <kbd>↑</kbd><kbd>↓</kbd> BPM</p><p><kbd>[</kbd><kbd>]</kbd> octave; <kbd>Space</kbd> Play; <kbd>Shift</kbd> + <kbd>R</kbd> REC</p><p><kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> save project</p></div></details>
   </div>
   <div class="health-pane"><div class="section-top"><span class="eyebrow">PROTOTYPE DIAGNOSTICS</span><span class="small-mono">BROWSER · NOT FM1 CPU</span></div>
@@ -176,6 +176,13 @@ function chordKeyboardNote(state,midi){
  while(base+26>108)base-=12;
  return clamp(base+clamp(midi,53,79)-CHORD_KEY_START,24,108)|0;
 }
+function chordForKeyboardKey(state,midi){
+ const pitch=chordKeyboardNote(state,midi);
+ return {
+  chord:{...state.chord,root:pitch%12},
+  octave:Math.floor(pitch/12)-5
+ };
+}
 // KEY mode stays a separate, explicit diatonic chord audition.
 function chordForPerformanceKey(state,black,index){
  const selected={...state.chord};
@@ -220,7 +227,8 @@ function importProject(raw){if(!isSafeProject(raw))throw Error('Invalid project 
  x.patterns=raw.patterns.map((p,pi)=>p.map((t,ti)=>t.map(ev=>{
   if(!ev||typeof ev!=='object')return null;
   if(ti===3&&ev.kind==='drums'&&Array.isArray(ev.hits))return {kind:'drums',hits:[...new Set(ev.hits.slice(0,4).map(v=>clamp(v,0,3)|0))]};
-  if(ti===0&&ev.kind==='chord'&&CHORD_TYPES.includes(ev.type))return{kind:'chord',root:clamp(ev.root,0,11)|0,type:ev.type,voicing:VOICINGS.includes(ev.voicing)?ev.voicing:'CLOSE',style:STYLES.includes(ev.style)?ev.style:'BLOCK',duration:clamp(ev.duration,1,16)};
+  if(ti===0&&ev.kind==='chord'&&CHORD_TYPES.includes(ev.type))return{kind:'chord',root:clamp(ev.root,0,11)|0,type:ev.type,voicing:VOICINGS.includes(ev.voicing)?ev.voicing:'CLOSE',style:STYLES.includes(ev.style)?ev.style:'BLOCK',...(Number.isInteger(ev.octave)?{octave:clamp(ev.octave,-3,4)|0}:{}),duration:clamp(ev.duration,1,16)};
+  if(ti===0&&ev.kind==='note')return{kind:'note',note:clamp(ev.note,24,108)|0,duration:clamp(ev.duration,1,16)};
   if(ti>0&&ti<3&&ev.kind==='note')return{kind:'note',note:clamp(ev.note,24,108)|0,duration:clamp(ev.duration,1,16)};return null;
  })));
  x.automation=raw.automation.filter(a=>a&&['cutoff','resonance','delay','level','tone','release'].includes(a.param)).map(a=>({pattern:clamp(a.pattern,0,3)|0,track:clamp(a.track,0,3)|0,step:clamp(a.step,0,15)|0,param:a.param,value:clamp01(a.value)})).slice(0,128);
@@ -236,7 +244,7 @@ const pct=n=>`${Math.round(n*100)}%`;
 const continuous=(label,s,k,opts={})=>({label,value:opts.format?opts.format(s[k]):pct(s[k]),norm:clamp01(s[k]),param:k,set:v=>{s[k]=clamp01(v);},automatable:['cutoff','resonance','delay','level','tone','release'].includes(k)});
 const choices=(label,items,get,set)=>{let ix=Math.max(0,items.indexOf(get()));return{label,value:String(items[ix]),norm:items.length===1?0:ix/(items.length-1),set:v=>set(items[Math.round(clamp01(v)*(items.length-1))]),automatable:false};};
 const num=(label,min,max,get,set,unit='')=>({label,value:`${Math.round(get())}${unit}`,norm:clamp01((get()-min)/(max-min)),set:v=>set(Math.round(min+clamp01(v)*(max-min))),automatable:false});
-const pageHelp={HOME:['HOME / IDEA','Patterns, key, scale and swing at a glance.'],CHORD:['CHORD LAB','ROOT sets key 1. Each key plays its own note; lit keys show a suggested next chord.'],KEY:['KEY / SCALE','Set your key and scale; keys 1–7 audition harmonized degrees.'],SEQ:['STEP SEQUENCER','The 16 white keys edit the steps.'],LOOP:['LOOP / PATTERN','REC captures notes and knob movements.'],SOUND:['SOUND / PATCH','Quick sounds, 808/909 and FM presets.'],FX:['FX / MOTION','Move the filter during REC to record automation.'],ENV:['ENVELOPE','Attack, Decay, Sustain, Release.'],LFO:['MODULATION','The LFO modulates filter cutoff.'],MIX:['GLO / PERFORMANCE','Encoders 1–4: track levels. White keys 1–4: mute, 5–8: solo.'],ARP:['ARPEGGIATOR','Arpeggiate the notes of your chord.']};
+const pageHelp={HOME:['HOME / IDEA','Patterns, key, scale and swing at a glance.'],CHORD:['CHORD LAB','Every key plays a full TYPE chord on its own ROOT-relative pitch; highlighted notes are suggestions.'],KEY:['KEY / SCALE','Set your key and scale; keys 1–7 audition harmonized degrees.'],SEQ:['STEP SEQUENCER','The 16 white keys edit the steps.'],LOOP:['LOOP / PATTERN','REC captures notes and knob movements.'],SOUND:['SOUND / PATCH','Quick sounds, 808/909 and FM presets.'],FX:['FX / MOTION','Move the filter during REC to record automation.'],ENV:['ENVELOPE','Attack, Decay, Sustain, Release.'],LFO:['MODULATION','The LFO modulates filter cutoff.'],MIX:['GLO / PERFORMANCE','Encoders 1–4: track levels. White keys 1–4: mute, 5–8: solo.'],ARP:['ARPEGGIATOR','Arpeggiate the notes of your chord.']};
 const pages=['HOME','CHORD','KEY','SEQ','LOOP','SOUND','FX','ENV','LFO','MIX','ARP','SETUP'];
 function controlSet(s){const t=s.tracks[s.selectedTrack],p=s.page;
  if(p==='CHORD')return[
@@ -371,8 +379,8 @@ class MiniAudio{
   let style=c.style||'BLOCK';if(style==='ARP'){let grid=Math.max(.085,dur/(notes.length*2));for(let i=0;i<notes.length*2;i++)this.playNote(notes[i%notes.length],track,at+i*grid,grid*.82,settings,.72);return;}
   notes.forEach((n,i)=>this.playNote(n,track,at+(style==='BLOCK'?0:style==='STRUM'?i*.027:i*.056),dur*.78,settings,.73));
  }
- playArpChord(chord,track,at,duration,settings,state){
-   const raw=chordNotes(chord,state.octave),notes=[];
+ playArpChord(chord,track,at,duration,settings,state,octave=state.octave){
+   const raw=chordNotes(chord,octave),notes=[];
    for(let oct=0;oct<state.arpOct;oct++)for(let n of raw)notes.push(clamp(n+oct*12,24,108));
    const rateBeats={'1/4':1,'1/8':.5,'1/16':.25}[state.arpRate]||.25;
    const spacing=(60/state.tempo)*rateBeats,count=Math.min(16,Math.ceil(duration/spacing));
@@ -395,7 +403,7 @@ class MiniAudio{
    for(let a of s.automation){if(a.pattern===pattern&&a.track===track&&a.step===step){let param=a.param;if(param==='cutoff')t.filter.frequency.setTargetAtTime(cutoffHz(a.value),time,.012);if(param==='level')t.amp.gain.setTargetAtTime(a.value*.85,time,.012);if(param==='resonance')t.filter.Q.setTargetAtTime(.5+a.value*8,time,.012);if(param==='delay')t.send.gain.setTargetAtTime(a.value*.4,time,.012);}}
    let ev=s.patterns[pattern][track][step];if(!ev)continue;
    if(track===3){for(let hit of ev.hits||[])this.playDrum(hit,settings.drumKit||'808',time,hit===2?.6:.9);}
-   else if(ev.kind==='chord'){this.releaseTrackVoices(track,time);let duration=stepDur*clamp(ev.duration||4,1,16);if(s.arpMode!=='OFF')this.playArpChord(ev,track,time,duration,settings,s);else this.playChord(ev,track,time,duration,settings,s.octave);}
+   else if(ev.kind==='chord'){this.releaseTrackVoices(track,time);let duration=stepDur*clamp(ev.duration||4,1,16),octave=Number.isInteger(ev.octave)?clamp(ev.octave,-3,4):s.octave;if(s.arpMode!=='OFF')this.playArpChord(ev,track,time,duration,settings,s,octave);else this.playChord(ev,track,time,duration,settings,octave);}
    else if(ev.kind==='note'){this.releaseTrackVoices(track,time);this.playNote(ev.note+12*s.octave,track,time,stepDur*clamp(ev.duration||1,1,16)*.87,settings,.75);}
   }
  }
@@ -964,7 +972,7 @@ function updateUI(){
  const knobs=controlSet(s),left=leftControls(s);let sets=[[leftEls,left],[rightEls,knobs]];
  for(let [els,data] of sets){data.forEach((d,i)=>{const el=els[i];el.querySelector('.knob-label').textContent=d.label;el.querySelector('.knob-value').textContent=d.value;let face=el.querySelector('.knob-face');face.style.setProperty('--angle',`${-135+270*d.norm}deg`);face.setAttribute('aria-valuenow',String(Math.round(d.norm*100)));face.setAttribute('aria-valuetext',d.value);});}
  for(let [name,el]of hardwareElements){el.classList.toggle('is-active',({CHORD:'SCL',KEY:'SCL',SEQ:'SEQ',LOOP:'SEQ',FX:'FX',SOUND:'EDIT',ENV:'ENV',LFO:'LFO',MIX:'GLO',ARP:'ARP',HOME:'HOME',SETUP:'HOME'}[s.page]===name));el.classList.toggle('is-playing',name==='PLAY'&&s.playing);el.classList.toggle('is-recording',name==='REC'&&(s.recording||s.armed));}
- $('onDeviceStatus').textContent=s.recording?'RECORD':s.playing?'PLAY':'READY';$('topPlay').textContent=s.playing?'■ Stop':'▶ Play';$('topRec').textContent=s.recording?'● Recording':s.armed?'● Armed':'● Rec';$('topRec').classList.toggle('is-active',s.recording);$('keyHint').textContent=s.page==='MIX'?'GLO · KEYS 1–4 MUTE / 5–8 SOLO':s.page==='SEQ'?'SEQ · 16 STEPS':s.selectedTrack===0&&s.page==='CHORD'?'CHORD · KEY 1 = ROOT · PLAY NOTES · LIT = NEXT CHORD':s.selectedTrack===0&&s.page==='KEY'?'SCALE · KEYS 1–7 DIATONIC CHORDS':s.selectedTrack===0?'CHORD · CURRENT ROOT + TYPE':s.selectedTrack===3?'DRUM · 808/909 KIT':TRACK_NAMES[s.selectedTrack]+' · CHROMATIC';
+ $('onDeviceStatus').textContent=s.recording?'RECORD':s.playing?'PLAY':'READY';$('topPlay').textContent=s.playing?'■ Stop':'▶ Play';$('topRec').textContent=s.recording?'● Recording':s.armed?'● Armed':'● Rec';$('topRec').classList.toggle('is-active',s.recording);$('keyHint').textContent=s.page==='MIX'?'GLO · KEYS 1–4 MUTE / 5–8 SOLO':s.page==='SEQ'?'SEQ · 16 STEPS':s.selectedTrack===0&&s.page==='CHORD'?'CHORD · KEY 1 = ROOT · EACH KEY = CHORD · LIT = SUGGESTION':s.selectedTrack===0&&s.page==='KEY'?'SCALE · KEYS 1–7 DIATONIC CHORDS':s.selectedTrack===0?'CHORD · CURRENT ROOT + TYPE':s.selectedTrack===3?'DRUM · 808/909 KIT':TRACK_NAMES[s.selectedTrack]+' · CHROMATIC';
  const [title,help]=pageHelp[s.page]||pageHelp.HOME;$('pageTitle').textContent=title;$('pageHelp').textContent=help;const instrument=activeInstrument(s);
  $('trackPill').textContent=`${instrument.track} · ${instrument.patch}`;
  $('trackPill').title=`Track ${instrument.index+1}: ${instrument.track}, Instrument ${instrument.patch}`;
@@ -1019,9 +1027,10 @@ async function pressKey(midi,black=false,index=0){let element=keysByMidi.get(mid
  if(t===3){const lane=index%4;audio.playDrum(lane,setting.drumKit,when);if(s.recording&&s.playing)recordNote(s,3,nextRecordStep(),{kind:'drums',hits:[lane]});}
  else if(t===0){
   if(s.page==='CHORD'){
-   const note=chordKeyboardNote(s,midi);
-   audio.playNote(note,t,when,dur,setting,.78);
-   if(s.recording&&s.playing)recordNote(s,0,nextRecordStep(),{kind:'note',note:note-12*s.octave,duration:2});
+   const {chord,octave}=chordForKeyboardKey(s,midi);
+   if(s.arpMode!=='OFF')audio.playArpChord(chord,t,when,dur,setting,s,octave);
+   else audio.playChord(chord,t,when,dur,setting,octave);
+   if(s.recording&&s.playing)recordNote(s,0,nextRecordStep(),{kind:'chord',...chord,octave,duration:4});
   }else{
    const chord=chordForPerformanceKey(s,black,index);
    audio.releaseTrackVoices(t,when);
@@ -1061,14 +1070,18 @@ function runSelfTests(){let count=0,tests=[];function assert(ok,name){count++;if
  const expectedChord=JSON.stringify(m.chord);
  assert(chordKeyboardNote(m,53)===65,'first key plays ROOT F4');
  assert(chordKeyboardNote(m,54)===66,'black key plays F#4');
- assert(chordKeyboardNote(m,55)===67,'second white key plays G4');
+ assert(chordKeyboardNote(m,55)===67,'second white key has G4 as chord root');
+ assert(chordForKeyboardKey(m,53).chord.root===5&&chordForKeyboardKey(m,53).octave===0,'first key plays Fm7');
+ assert(chordForKeyboardKey(m,54).chord.root===6&&chordForKeyboardKey(m,54).octave===0,'next key plays F#m7');
+ assert(chordForKeyboardKey(m,55).chord.root===7&&chordForKeyboardKey(m,55).octave===0,'third key plays Gm7');
+ assert(chordForKeyboardKey(m,65).octave===1,'second keyboard octave correctly transposes');
  const hint=suggestNextChords(m);
  const highlighted=new Set(chordNotes(hint[0].chord).map(n=>n%12));
  assert(getWhiteMidiKeys().concat(getBlackMidiKeys()).some(n=>highlighted.has(chordKeyboardNote(m,n)%12)),'suggested keys reachable');
  for(const root of [0,5,11])for(const octave of [-2,0,2]){
   m.chord.root=root;m.octave=octave;
   const notes=Array.from({length:27},(_,i)=>chordKeyboardNote(m,53+i));
-  assert(new Set(notes).size===27,`27 distinct notes at ROOT ${root} OCT ${octave}`);
+  assert(new Set(notes).size===27,`27 distinct chord roots at ROOT ${root} OCT ${octave}`);
   assert(notes[0]%12===root,`first key stays ROOT ${root} OCT ${octave}`);
  }
  m.chord.root=5;m.octave=0;
