@@ -78,7 +78,7 @@ int main(void)
     assert(nevents == 4u && q.pending == 4u);
     fmxy_style_up(&q, 0, emitted, 0);
     assert(q.pending == 2u);
-    fmxy_style_process(&q, 5000u, emitted, 0);
+    fmxy_style_process(&q, 7400u, emitted, 0);  /* last SPREAD note is due at 7400 */
     assert(nevents == 8u && q.pending == 0u);
     fmxy_style_panic(&q, emitted, 0);
     assert(q.pending == 0u);
