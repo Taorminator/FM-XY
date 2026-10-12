@@ -907,7 +907,7 @@ let keysByMidi=new Map(), heldKeyboard=new Set(), lastAudioError='',nextTime=0,n
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(lastToast);lastToast=setTimeout(()=>el.classList.remove('show'),2700);}
 function createKnob(label,color,isLeft,index){let wrap=document.createElement('div');wrap.className='knob-control '+(isLeft?'left':'right');wrap.style.setProperty('--knob-color',color);
  let cap=document.createElement('span');cap.className='knob-label';cap.textContent=label;
- let face=document.createElement('button');face.type='button';face.className='knob-face';face.setAttribute('role','slider');face.setAttribute('aria-label',label);face.setAttribute('aria-valuemin','0');face.setAttribute('aria-valuemax','100');face.setAttribute('aria-valuenow','50');face.title=label+' — ziehen, scrollen oder Pfeiltasten';
+ let face=document.createElement('button');face.type='button';face.className='knob-face';face.setAttribute('role','slider');face.setAttribute('aria-label',label);face.setAttribute('aria-valuemin','0');face.setAttribute('aria-valuemax','100');face.setAttribute('aria-valuenow','50');face.title=label+' — drag, scroll, or use arrow keys';
  let value=document.createElement('span');value.className='knob-value';value.textContent='—';wrap.append(cap,face,value);wrap.dataset.left=isLeft?'1':'0';wrap.dataset.index=index;
  const getDesc=()=>isLeft?leftControls(s)[index]:controlSet(s)[index];
  const change=v=>applyKnob(isLeft,index,v);
@@ -1017,7 +1017,7 @@ async function pressKey(midi,black=false,index=0){let element=keysByMidi.get(mid
    toast(`${TRACK_NAMES[track]}: ${s.muted[track]?'MUTE':'UNMUTE'}`);
   }else{
    s.soloTrack=s.soloTrack===track?null:track;
-   toast(s.soloTrack===null?'Solo beendet':`${TRACK_NAMES[track]} SOLO`);
+   toast(s.soloTrack===null?'Solo off':`${TRACK_NAMES[track]} SOLO`);
   }
   updateAudioParams();updateUI();return;
  }
@@ -1098,7 +1098,7 @@ $('importProject').addEventListener('click',()=>$('projectFile').click());$('pro
 $('resetProject').addEventListener('click',()=>{if(!confirm('Reset the demo? Unexported changes will be lost.'))return;s.playing=false;audio.panic();s=demoProject();try{localStorage.removeItem('mini-opxy-fm1-v1')}catch{}updateAudioParams();updateUI();toast('Demo restored.');});
 $('runTests').addEventListener('click',runSelfTests);
 $('panic').addEventListener('click',()=>{audio.panic();toast('All active synth voices stopped.');});
-$('clearMotion').addEventListener('click',()=>{let n=clearAutomation(s,s.selectedTrack);toast(`${n} Automation-Events in ${TRACK_NAMES[s.selectedTrack]} gelöscht.`);updateUI();});
+$('clearMotion').addEventListener('click',()=>{let n=clearAutomation(s,s.selectedTrack);toast(`${n} automation events cleared from ${TRACK_NAMES[s.selectedTrack]}.`);updateUI();});
 $('prevPage').addEventListener('click',()=>setPage(pages[(pages.indexOf(s.page)+pages.length-1)%pages.length]));
 $('nextPage').addEventListener('click',()=>setPage(pages[(pages.indexOf(s.page)+1)%pages.length]));
 document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select')||e.ctrlKey||e.metaKey){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveProject();}return;}
