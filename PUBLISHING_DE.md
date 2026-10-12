@@ -1,11 +1,14 @@
-# FM-XY veröffentlichen
+# GitHub Pages publishing guide (English)
 
-Das Repository ist öffentlich unter https://github.com/Taorminator/FM-XY verfügbar. GitHub Pages muss einmalig im Repository aktiviert werden:
+FM-XY is published at https://taorminator.github.io/FM-XY/ from the `main` branch and `/docs` directory. The source repository is https://github.com/Taorminator/FM-XY.
 
-1. Settings → Pages öffnen.
-2. Unter **Build and deployment** die Quelle **Deploy from a branch** wählen.
-3. Branch **main**, Verzeichnis **/docs**, danach **Save**.
-4. Auf die Veröffentlichung warten. Erwartete Adresse: https://taorminator.github.io/FM-XY/
-5. Unter **/try/** ist die Browser-Demo, unter **/installer/** der bewusst gesperrte Firmware-Installer.
+## Maintenance
 
-Bitte keine Firmware-Datei für FM-XY flashen: Der echte Felucca-C-Port und Hardwaretests fehlen noch. Die Seite enthält daher keinen aktiven Installationsvorgang.
+- The playable simulator lives in `docs/try/index.html`.
+- The installation status page is `docs/installer/index.html`; it must remain disabled until a hardware-verified firmware package is available.
+- Keep UI copy, release notes and documentation in English.
+- Credit any actual incorporated third-party source code in `CREDITS.md`, distinguishing it from reference-only projects.
+
+## Firmware
+
+See `FM1_PORTING.md` for the conservative Felucca-based port. No flashable FM-XY firmware exists yet.
