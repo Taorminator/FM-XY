@@ -1,0 +1,66 @@
+name: Felucca baseline and FM-XY full build
+on:
+  push:
+    branches: [firmware/felucca-first-port]
+    paths:
+      - "firmware/**"
+      - ".github/workflows/native-full-build.yml"
+  workflow_dispatch:
+jobs:
+  baseline-and-port:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FELUCCA_COMMIT: ef1f561b6b105f20350f6b1eac0dc0789a357f00
+      JIELI_TOOLCHAIN: ${{ github.workspace }}/.toolchains/toolchain
+      AC79_SDK: ${{ github.workspace }}/.toolchains/fw-AC79_AIoT_SDK
+    steps:
+      - name: Check out FM-XY
+        uses: actions/checkout@v4
+      - name: Host prerequisites
+        run: |
+          python3 -m pip install --break-system-packages Pillow fonttools
+          command -v cc
+          command -v node
+      - name: Clone pinned Felucca upstream
+        run: |
+          git clone --filter=blob:none https://github.com/hugelton/Felucca.git /tmp/felucca-base
+          git -C /tmp/felucca-base checkout "${FELUCCA_COMMIT}"
+          git -C /tmp/felucca-base rev-parse HEAD
+      - name: Obtain official build dependencies
+        run: |
+          mkdir -p .toolchains
+          sh /tmp/felucca-base/tools/get_toolchain.sh "${{ github.workspace }}/.toolchains"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "${AC79_SDK}"
+      - name: Baseline build and full upstream tests
+        run: |
+          cd /tmp/felucca-base
+          ./build.sh
+          sh tests/run_tests.sh
+      - name: Apply FM-XY overlay to separate source copy
+        run: |
+          cp -a /tmp/felucca-base /tmp/fmxy-felucca
+          git -C /tmp/fmxy-felucca reset --hard "${FELUCCA_COMMIT}"
+          python3 firmware/apply_felucca_overlay.py /tmp/fmxy-felucca
+      - name: FM-XY full build and regressions
+        run: |
+          cd /tmp/fmxy-felucca
+          ./build.sh
+          sh tests/run_tests.sh
+      - name: Confirm unchanged audio and loader sources
+        if: always()
+        run: |
+          if test -d /tmp/fmxy-felucca/.git; then
+            git -C /tmp/fmxy-felucca diff --name-only | tee /tmp/fmxy-changed-files.txt
+            if grep -E '^firmware/(src/(audio|seq|usb|storage|flash|midi|voice|fx)\\.c|loader/)' /tmp/fmxy-changed-files.txt; then
+              echo 'Unexpected modification to timing, audio, storage or loader code'
+              exit 1
+            fi
+          fi
+      - name: Test summary only (no firmware upload)
+        if: always()
+        run: |
+          echo "## Native build status" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned Felucca commit: \`${FELUCCA_COMMIT}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Any .fwsc is CI-local only; not published or installer-enabled." >> "$GITHUB_STEP_SUMMARY"
