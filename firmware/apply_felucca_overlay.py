@@ -92,6 +92,15 @@ def install(repo: Path) -> None:
     # to preserve that expectation after the new ROOT-anchored keyboard mapping.
     patch_once(p, 't->p[P_CHRD] = CH_MAJ7; t->p[P_VOIC] = VC_BASS;\n    t->seq_idx = 4;',
                't->p[P_ROOT] = 5; t->p[P_CHRD] = CH_MAJ7; t->p[P_VOIC] = VC_BASS;\n    t->seq_idx = 4;')
+
+    # The original CH_POW arpeggiator fixture assumes key 7 is always C4.
+    # With the ROOT-based fixed-chord keyboard this is true when ROOT = F.
+    p = repo / "tests/scale_test.c"
+    patch_once(p, "    t->p[P_CHRD] = CH_POW;",
+               "    t->p[P_ROOT] = 5;\n    t->p[P_CHRD] = CH_POW;")
+    patch_once(p,
+               "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);",
+               "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);\n    t->p[P_ROOT] = 7;   /* ROOT G: the held chord follows the keyboard up 2 semitones */\n    arp_run(t, 3);\n    assert(arp_seen[0] == 62 && arp_seen[1] == 69 && arp_seen[2] == 74);\n    t->p[P_ROOT] = 5;")
     p = repo / "tests/ui_render.c"
     patch_once(
         p,

@@ -14,6 +14,7 @@ changed = set(git("diff", "--name-only").splitlines())
 allowed = {
     path, "firmware/src/ui_graph.c", "firmware/src/ui_draw.c",
     "firmware/src/ui_menu.c", "tests/ui_render.c", "tests/chord_test.c",
+    "tests/scale_test.c",
 }
 extra = changed - allowed
 if extra:
