@@ -101,6 +101,8 @@ def install(repo: Path) -> None:
     patch_once(p,
                "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);",
                "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);\n    t->p[P_ROOT] = 7;   /* ROOT G: the held chord follows the keyboard up 2 semitones */\n    arp_run(t, 3);\n    assert(arp_seen[0] == 62 && arp_seen[1] == 69 && arp_seen[2] == 74);\n    t->p[P_ROOT] = 5;")
+    p = repo / "firmware/src/ui_graph.c"
+    patch_once(p, "        cv_rrect(x, BLACK[note % 12u] ? 36 : 62, (int32_t)w - 2, 48, w > 6u ? 3 : 2,\n                  !on ? T_RAISE : note % 12u == (uint32_t)r % 12u ? T_ACCENT : c, T_SURF);", "        /* FM-XY: hard vertical bars with clean negative-space cuts, kept\n         * inside the original piano geometry for 240x240 readability. */\n        {\n            int32_t top = BLACK[note % 12u] ? 36 : 62;\n            int32_t width = (int32_t)w - 2;\n            uint16_t shade = !on ? T_RAISE : note % 12u == (uint32_t)r % 12u ? T_ACCENT : c;\n            cv_rect(x, top, width, 48, shade);\n            cv_rect(x + width / 2, top + 5, 1, on ? 3 : 7, T_SURF);\n        }")
     p = repo / "firmware/src/params.c"
     patch_once(p, "    {\"CHORD\", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, 0xFF, 0xFF}},", "    {\"CHORD\", FAM_SCL, SC_TRACK, GR_CHORD, {P_ROOT, P_CHRD, P_VOIC, P_AMODE}},")
     p = repo / "firmware/src/ui_draw.c"
