@@ -1,24 +1,14 @@
-# FM-XY Native Firmware Port
+# FM-XY firmware
 
-FM-XY is entering the **native Felucca C port** stage. This repository's HTML groovebox remains a separate simulation, **not a flashable firmware**.
+Native firmware development uses [Felucca](https://github.com/hugelton/Felucca) (GPL-3.0-only), pinned to `ef1f561b6b105f20350f6b1eac0dc0789a357f00`.
 
-## Baseline
-- Upstream: [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments (GPL-3.0-only).
-- Pinned reference commit: `ef1f561b6b105f20350f6b1eac0dc0789a357f00` (2026-10-11).
-- Source layout: `firmware/src/felucca.c` includes other firmware source files in order. Existing `ui_graph.c` already draws a CHORD graph and `ui_draw.c` has a boot splash. `tools/gen_ui_palettes.py` generates device-safe palettes.
+## First source overlay
+- Adds three display palettes and an FM-XY boot screen.
+- Shows two read-only chord suggestions for major and minor.
+- Preserves the upstream audio engine, sequencer, storage, OTA and version metadata.
 
-## Conservative development plan
-1. Fork Felucca while preserving upstream ancestry, license files and credits.
-2. Reproduce Felucca's host and browser-emulator tests before any changes.
-3. Introduce the FM-XY splash and 3 palettes with tested, bounded LCD rendering.
-4. Extend the existing `SCL > CHORD` screen with suggestions while keeping ROOT and TYPE separate and editable.
-5. Bring over the sequencer and automation UI using Felucca's scheduler and engine, not the JavaScript audio simulator.
-6. Test render overflow, contrast, CPU budget, latency, memory, flash storage, backup and recovery.
-7. Only release a verified `.fwsc` for installation.
+Run `python3 firmware/apply_felucca_overlay.py PATH_TO_PINNED_FELUCCA`, then follow [Felucca's build and test instructions](https://github.com/hugelton/Felucca/blob/main/BUILDING.md).
 
-## Work in progress
-- `firmware/fmxy_harmony.h` is a small pure-C **prototype** of deterministic harmonic suggestions.
-- This new code is not wired into the Felucca display or music engine yet.
-- No real device build or flash image is provided.
+CI tests the overlay and palette contrast. **No compiled firmware or hardware validation yet. Do not flash.**
 
-See [upstream build guide](https://github.com/hugelton/Felucca/blob/main/BUILDING.md). Firmware installation stays disabled.
+[Installer plan](INSTALLER.md) · [Credits](../CREDITS.md)
