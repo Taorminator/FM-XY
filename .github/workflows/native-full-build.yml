@@ -48,6 +48,28 @@ jobs:
           cd /tmp/fmxy-felucca
           ./build.sh
           sh tests/run_tests.sh
+      - name: Validate offline Felucca installer staging
+        run: |
+          cd /tmp/fmxy-felucca
+          test -s build/felucca.fwsc
+          python3 web/make_site.py build/felucca.fwsc dev /tmp/fmxy-installer-stage
+          test -s /tmp/fmxy-installer-stage/webapp/installer/index.html
+          test -s /tmp/fmxy-installer-stage/webapp/editor/index.html
+          test -s /tmp/fmxy-installer-stage/firmware/felucca-dev.fwsc
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path('/tmp/fmxy-installer-stage')
+          page = (root / 'webapp/installer/index.html').read_text()
+          pkg = (root / 'firmware/felucca-dev.fwsc').read_bytes()
+          assert 'FELUCCA-LOADER-1' in pkg.decode('latin-1')
+          assert '/*LIB*/' not in page and '/*META*/' not in page
+          assert 'fm1ota.js' not in page or 'class Updater' in page
+          assert 'captureBackup' in page and 'validateStockPackage' in page
+          assert 'FM-1_900' in page
+          print(f'Offline installer validated; package SHA-256: {hashlib.sha256(pkg).hexdigest()}')
+          print('Package stays CI-local, never uploaded or published.')
+          PY
       - name: Confirm unchanged audio and loader sources
         if: always()
         run: |
