@@ -25,6 +25,8 @@ jobs:
           Path('/tmp/fmxy.js').write_text('\n'.join(m))
           PY
           node --check /tmp/fmxy.js
+      - name: Verify browser chord routing and highlighted notes
+        run: node tests/browser-chords.test.mjs docs/try/index.html
       - name: Native harmony module
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic firmware/tests/test_harmony.c -o /tmp/fmxy-harmony
