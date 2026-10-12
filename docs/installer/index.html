@@ -1,1 +1,58 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FM-XY · Installer status</title><style>body{background:#090a0c;color:#eee;font-family:system-ui,sans-serif;margin:0}main{max-width:900px;margin:auto;padding:30px}a{color:inherit}nav{display:flex;gap:18px;flex-wrap:wrap}h1{font-size:clamp(56px,11vw,112px);letter-spacing:-.07em}p,li{line-height:1.7;color:#cbd0d5}section{border-top:1px solid #555;padding:30px 0}button{background:#292929;color:#bbb;border:1px solid #777;padding:15px}button:disabled{opacity:.7}footer{padding:24px 0;border-top:1px solid #444;color:#999}</style></head><body><main><nav><a href="../">FM-XY</a><a href="../try/">Browser emulator</a><a href="../legal/">Credits & legal</a><a href="https://github.com/Taorminator/FM-XY">Source</a></nav><p>FIRMWARE STATUS</p><h1>NOT YET.</h1><p>The FM-XY browser prototype is playable now, but no tested FM1 firmware package is available. Do not flash any file labeled FM-XY until the firmware port and recovery procedure are verified.</p><button disabled>INSTALL FM-XY — UNAVAILABLE</button><p><a href="../try/">Open the browser emulator →</a></p><section><h2>Before installation</h2><ol><li>Reproduce an unmodified Felucca build using the JieLi toolchain and AC79 SDK.</li><li>Port FM-XY graphics, harmonic suggestions, navigation and settings into Felucca C sources.</li><li>Build the firmware-backed WebAssembly emulator from those same sources.</li><li>Run host regression, UI overflow and audio/CPU budget tests, then FM1 endurance and latency tests.</li><li>Verify backups, restoration and device recovery on real hardware.</li><li>Publish an audited .fwsc release with SHA-256 checksums and unlock the installer.</li></ol><p><a href="https://github.com/hugelton/Felucca/blob/main/BUILDING.md">Felucca building instructions</a></p></section><footer>Independent custom-firmware project. No warranty. Not affiliated with M-VAVE or Teenage Engineering.</footer></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="FM-XY firmware installation, compatibility checks and recovery information. Firmware not yet released.">
+<title>FM-XY · Firmware installer</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;background:#0a0b0e;color:#f2f4f6;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0}a{color:inherit}
+main{max-width:1040px;margin:auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;padding:12px 0 24px;border-bottom:1px solid #383b42}
+header strong{font-size:22px;letter-spacing:-.05em}nav{display:flex;gap:20px;flex-wrap:wrap}
+nav a{text-decoration:none;color:#c9ced5}.eyebrow{letter-spacing:.16em;font-size:11px;color:#aab2be;text-transform:uppercase}
+h1{font-size:clamp(46px,9vw,94px);line-height:1;letter-spacing:-.075em;margin:16px 0}
+h2{font-size:25px;letter-spacing:-.03em}p,li{color:#cbd0d7;line-height:1.65}
+.hero{padding:65px 0 38px;max-width:790px}.hero p{font-size:19px}
+.status{display:inline-flex;align-items:center;gap:9px;font-size:12px;border:1px solid #666d76;border-radius:20px;padding:8px 13px}
+.status::before{content:'';width:8px;height:8px;border-radius:50%;background:#aeb5bf}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.panel{border:1px solid #3d424b;border-radius:12px;padding:23px;background:#16191e}
+.panel h2{margin:2px 0 12px}.panel ul{padding-left:20px}
+code{background:#262b32;padding:2px 5px;border-radius:3px}
+.button{display:inline-block;margin-top:12px;border-radius:6px;padding:14px 18px;border:1px solid #aab0b9;color:#d6dce2;text-decoration:none;font-size:14px}
+button{background:#30343a;border:1px solid #58616d;color:#b7bdc6;border-radius:6px;padding:14px 18px;font:inherit;cursor:not-allowed}
+.release{margin:32px 0;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.release p{font-size:12px;margin:8px 0}
+section.checklist{padding:30px 0;border-top:1px solid #343941}
+footer{margin-top:30px;padding:20px 0;border-top:1px solid #333941;color:#aeb4bf;font-size:12px}
+@media(max-width:670px){.grid{grid-template-columns:1fr}.hero{padding:40px 0 25px}}
+</style></head><body><main>
+<header><strong>FM-XY <span class="eyebrow">/ MIDDLE AGE ENGINEERING</span></strong>
+<nav><a href="../">Overview</a><a href="../try/">Play online</a><a href="../legal/">Credits & legal</a><a href="https://github.com/Taorminator/FM-XY">GitHub</a></nav></header>
+<section class="hero"><span class="status">Firmware development · Not released</span>
+<h1>INSTALL FM-XY.</h1>
+<p>A streamlined firmware installer for M-VAVE FM1, based on Felucca’s established package, backup and update system. Installation is unavailable until all release gates pass.</p>
+</section>
+<div class="grid">
+<section class="panel"><span class="eyebrow">01 / Backup</span><h2>Keep your music safe.</h2>
+<p>Before installing, save your current projects, presets, user samples and settings. The release installer will require a verified backup step before any firmware write.</p></section>
+<section class="panel"><span class="eyebrow">02 / Connect</span><h2>Verify the device.</h2>
+<p>The approved installer will use Felucca’s Web MIDI transport in Chrome or Edge over a USB data cable. Device identity and firmware compatibility must be checked first.</p></section>
+<section class="panel"><span class="eyebrow">03 / Validate</span><h2>Check the package.</h2>
+<p>Only a published FM-XY <code>.fwsc</code> release with an independently checked SHA-256 checksum and retained licensing information will be accepted.</p></section>
+<section class="panel"><span class="eyebrow">04 / Install & recover</span><h2>Update safely.</h2>
+<p>Felucca’s tested updater handles the transfer. Recovery instructions and a verified restoration procedure must be available before flashing is enabled.</p></section>
+</div>
+<div class="release"><div><button type="button" disabled aria-disabled="true">INSTALL FIRMWARE — NOT AVAILABLE</button><p>No device connection, package download or flash operation can start from this page.</p></div><a class="button" href="../try/">Play the browser version →</a></div>
+<section class="checklist">
+<h2>Release requirements</h2>
+<ul>
+<li>Native FM-XY build succeeds and Felucca audio, UI, editor, storage and package regressions pass.</li>
+<li>Full ROOT/TYPE chord performance is implemented and verified in the native C firmware.</li>
+<li>CPU, RAM, latency and 8-voice behavior meet the baseline on real FM1 hardware.</li>
+<li>Backup, interrupted USB update, return-to-stock and recovery have been tested.</li>
+<li>Release package, SHA-256, third-party licenses and user instructions are published.</li>
+</ul>
+<p><a href="https://github.com/Taorminator/FM-XY/pull/1">Native development PR</a> · <a href="https://github.com/hugelton/Felucca/blob/main/BUILDING.md">Felucca build and recovery reference</a></p>
+</section>
+<footer>FM-XY is an independent project, not affiliated with or endorsed by M-VAVE, Teenage Engineering or Hügelton Instruments. Custom firmware is installed at your own risk. No warranty.</footer>
+</main></body></html>
