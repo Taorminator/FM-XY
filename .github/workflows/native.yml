@@ -19,6 +19,8 @@ jobs:
           /tmp/fmxy-style-test
           cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style_gate.c -o /tmp/fmxy-style-gate-test
           /tmp/fmxy-style-gate-test
+          cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style_router.c -o /tmp/fmxy-style-router-test
+          /tmp/fmxy-style-router-test
       - name: Fetch pinned Felucca source
         run: |
           git clone https://github.com/hugelton/Felucca.git /tmp/felucca
