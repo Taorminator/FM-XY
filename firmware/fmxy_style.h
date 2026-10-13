@@ -86,7 +86,8 @@ static inline void fmxy_style_process(fmxy_style_queue_t *q, uint32_t now,
         if (!s->held) continue;
         for (i = 0; i < s->count; ++i) {
             uint8_t bit = (uint8_t)(1u << i);
-            if ((s->started & bit) || (int32_t)(now - s->due[i]) < 0)
+            /* Defined unsigned wrap check; deltas must stay below 2^31. */
+            if ((s->started & bit) || ((now - s->due[i]) & UINT32_C(0x80000000)))
                 continue;
             s->started |= bit;
             q->pending--;
