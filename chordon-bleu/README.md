@@ -52,3 +52,15 @@ Future Felucca-derivative code must comply with GPL-3.0-only and retain copyrigh
 5. Test on a real FM1 with safe backup/recovery before ever enabling an installer.
 
 This folder has been staged on the `chordon-bleu` **branch of FM-XY** to protect FM-XY's main branch until the standalone repository is created.
+
+## v0.4 — FLIP, FEEL, ARP
+
+- **FLIP + KEEP 1** preserves the entire selected chord, even when ROOT and TYPE are AUTO. Manually set ROOT / TYPE on other slots remain respected.
+- **FLIP + ALL 4** regenerates all four chords, clearing manual pins; **UNDO** returns to the previous loop.
+- **FEEL** has three musically scored styles: **WARM** (smooth seventh/ninth colors), **CRISPY** (sus/add9 brightness), **CHEESY** (maj7/dominant/6 nostalgic movement). The emotional associations are subjective.
+- **ARP** has four direct real-time settings: KNOB 1 RATE (1/4, 1/8, 1/16, 1/32), KNOB 2 GATE (15–100%), KNOB 3 DIRECTION (up/down/up-down/random), KNOB 4 ORDER (pitch/root-first/out-in/fifth-first). Browser playback uses all four parameters.
+- **SAVE / RESTORE** retains FEEL and ARP settings with the loop; legacy ELSEWHERE browser storage keys are read as a migration fallback when on the same domain.
+
+**Hardware status:** Four FM1 encoders are only a proposed direct mapping. The browser prototype is not flashable FM1 firmware; the original C harmony module is not yet ported to this updated JS feature set. See [FM1 encoder mapping](FM1_KNOBS.md).
+
+**Checks:** `node chordon-bleu/tests/harmony.test.mjs` tests 1,080 FLIP mutations, musical bias, and ARP note scheduling; browser-level Chromium checks were also run independently across six viewport sizes and verified nonzero sound output. This does not establish iPhone Safari or hardware compatibility.
