@@ -1,0 +1,26 @@
+name: CHORDON BLEU preview checks
+on:
+  push:
+    branches: [chordon-bleu]
+    paths:
+      - "chordon-bleu/**"
+      - ".github/workflows/chordon-bleu.yml"
+  pull_request:
+    paths:
+      - "chordon-bleu/**"
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify browser code and UI essentials
+        run: node chordon-bleu/tests/check.mjs
+      - name: Do not publish untested FM1 firmware
+        run: |
+          if find chordon-bleu -name '*.fwsc' -o -name '*.bin' | grep .; then
+            echo 'Unverified firmware artifacts forbidden' >&2
+            exit 1
+          fi
