@@ -134,6 +134,102 @@ def install(repo: Path) -> None:
     patch_once(p, "    key_down(7); frame();                                          /* C4 in C (SCALE CHR: the major of C) */", "    t->p[P_ROOT] = 5; t->p[P_SCALE] = 1; t->p[P_CHRD] = CH_MAJ;\n    {\n        uint32_t first = 0, second = fmxy_chord_hint_leds(&first);\n        bad += check(\"FM-XY LEDs: C then D as suggestion triggers in F major\",\n                     first == (1u << 7) && second == (1u << 9));\n        bad += check(\"  hints leave the chosen chord untouched\",\n                     t->p[P_ROOT] == 5 && t->p[P_CHRD] == CH_MAJ && t->p[P_VOIC] == VC_OPEN);\n        t->p[P_SCALE] = 0;\n        bad += check(\"  chromatic: no misleading diatonic LEDs\",\n                     fmxy_chord_hint_leds(&first) == 0u && first == 0u);\n    }\n    t->p[P_ROOT] = 0; t->p[P_CHRD] = CH_DIA3; t->p[P_SCALE] = 0;\n    key_down(7); frame();                                          /* C4 in C (SCALE CHR: the major of C) */")
     p = repo / "tests/chord_test.c"
     patch_once(p, "int main(void)\n{", "/* Real Felucca input-path compatibility test for the STYLE scheduler.\n * This is NOT yet an ISR hook: drive router events through input_on/off\n * and the real MIDI output and record code in hostsim (all in one TU). */\n#include \"../firmware/src/fmxy_style_router.h\"\nstatic void fmxy_bridge_emit(uint8_t track, uint8_t note, uint8_t on, void *unused)\n{\n    track_t *t = &trk[track];\n    uint32_t mc = trk_midi_ch(track);\n    (void)unused;\n    if (on) {\n        if (!midi_note_held(t, note))\n            input_on(t, note, 100u);\n        midi_out_event(0x09u | (0x90u | mc) << 8 | (uint32_t)note << 16 | 100u << 24);\n    } else {\n        if (!midi_local_held(t, note))\n            input_off(t, note);\n        midi_out_event(0x08u | (0x80u | mc) << 8 | (uint32_t)note << 16);\n    }\n}\nstatic int fmxy_style_real_input_test(void)\n{\n    static const uint8_t fm7[4] = {53, 56, 60, 63};\n    static const uint8_t am7[4] = {57, 60, 64, 67};\n    fmxy_style_router_t r = {0};\n    track_t *t = &trk[0];\n    uint32_t k, timing = FS / 50u, initial;\n    int bad = 0, ok = 1;\n    reset();\n    t->p[P_CHRD] = CH_MIN7; t->p[P_VOICE] = V_POLY;\n    fmxy_style_route_init(&r, fmxy_bridge_emit, 0);\n    fmxy_test_router = &r;\n    song.rec = 1; song.playing = 1; t->seq_idx = 4; t->seq_pos = 0;\n    /* Timed events must use the real voice, record and MIDI output paths. */\n    ok &= fmxy_style_route_down(&r, 0u, 0u, fm7, 4u, FMXY_STYLE_STRUM, 100u, FS);\n    fmxy_style_route_process(&r, 100u);\n    ok &= gate_note(t, 53u) && ngated(t) == 1u && mo_w == 1u &&\n          t->step[4].n == 1u && t->step[4].note[0] == 53u;\n    for (k = 1; k < 4u; k++) {\n        fmxy_style_route_process(&r, 100u + k * timing - 1u);\n        ok &= t->step[4].n == k && mo_w == k;\n        fmxy_style_route_process(&r, 100u + k * timing);\n        ok &= t->step[4].n == k + 1u && mo_w == k + 1u &&\n              gate_note(t, fm7[k]) && voices_busy() <= NVOICE;\n    }\n    ok &= t->step[4].note[0] == 53u && t->step[4].note[1] == 56u &&\n          t->step[4].note[2] == 60u && t->step[4].note[3] == 63u;\n    fmxy_style_route_up(&r, 0u);\n    ok &= !ngated(t) && mo_w == 8u && r.queue.pending == 0u;\n    bad += check(\"FM-XY STYLE bridge: timed notes reach Felucca voices, live REC and MIDI OUT\", ok);\n    song.rec = song.playing = 0;\n    /* Before its delayed notes fire, releasing must never emit their OFFs. */\n    initial = mo_w;\n    ok = fmxy_style_route_down(&r, 1u, 0u, am7, 4u, FMXY_STYLE_SPREAD, 10000u, FS);\n    fmxy_style_route_process(&r, 10000u);\n    ok &= gate_note(t, 57u) && r.queue.pending == 3u && mo_w == initial + 1u;\n    fmxy_style_route_up(&r, 1u);\n    ok &= mo_w == initial + 2u && !ngated(t) && r.queue.pending == 0u;\n    fmxy_style_route_process(&r, 20000u);\n    bad += check(\"FM-XY STYLE bridge: early release cancels unheard notes and MIDI events\",\n                 ok && mo_w == initial + 2u);\n    /* Same pitch in two chords: only one note-on, then one last note-off. */\n    initial = mo_w;\n    ok = fmxy_style_route_down(&r, 2u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 25000u, FS) &&\n         fmxy_style_route_down(&r, 3u, 0u, am7, 4u, FMXY_STYLE_BLOCK, 25000u, FS);\n    fmxy_style_route_process(&r, 25000u);\n    ok &= mo_w == initial + 7u && r.gate[0].references[60] == 2u &&\n          voices_busy() <= NVOICE;\n    fmxy_style_route_up(&r, 2u);\n    ok &= gate_note(t, 60u) && r.gate[0].references[60] == 1u;\n    fmxy_style_route_up(&r, 3u);\n    ok &= !ngated(t) && mo_w == initial + 14u && r.queue.pending == 0u;\n    bad += check(\"FM-XY STYLE bridge: shared voices/MIDI balanced and eight-voice budget\", ok);\n    /* MIDI starts first: a staged physical chord includes its held C4.\n     * Releasing the physical chord must not cut off the external owner.\n     * The reverse ordering (STYLE starts before MIDI) is deliberately\n     * not cleared for production until midi_local_held sees STYLE owners. */\n    t->p[P_CHRD] = CH_OFF;\n    midi(0x90, 60u, 100u);\n    ok = gate_note(t, 60u) && ngated(t) == 1u;\n    initial = mo_w;\n    ok &= fmxy_style_route_down(&r, 4u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 30000u, FS);\n    fmxy_style_route_process(&r, 30000u);\n    ok &= ngated(t) == 4u && r.gate[0].references[60] == 1u &&\n          mo_w == initial + 4u && voices_busy() <= NVOICE;\n    fmxy_style_route_up(&r, 4u);\n    ok &= gate_note(t, 60u) && ngated(t) == 1u && mo_w == initial + 8u;\n    midi(0x80, 60u, 0u);\n    bad += check(\"FM-XY STYLE bridge: MIDI-first ownership survives staged chord release\",\n                 ok && !ngated(t) && !r.queue.pending);\n    /* STYLE first, then external MIDI. The external source must not retrigger,\n     * and STYLE release may not silence the note owned by MIDI. */\n    initial = mo_w;\n    ok = fmxy_style_route_down(&r, 5u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 35000u, FS);\n    fmxy_style_route_process(&r, 35000u);\n    ok &= gate_note(t, 60u) && ngated(t) == 4u && mo_w == initial + 4u;\n    midi(0x90, 60u, 100u);\n    ok &= ngated(t) == 4u && mo_w == initial + 4u &&\n          fmxy_style_route_active(&r, 0u, 60u) == 1u;\n    fmxy_style_route_up(&r, 5u);\n    ok &= gate_note(t, 60u) && ngated(t) == 1u && mo_w == initial + 8u;\n    midi(0x80, 60u, 0u);\n    bad += check(\"FM-XY STYLE bridge: STYLE-first MIDI ownership survives both releases\",\n                 ok && !ngated(t) && !r.queue.pending);\n    fmxy_test_router = 0;\n    return bad;\n}\n\nint main(void)\n{")
+    # Extend the generated host fixture (not production firmware) to cover
+    # Felucca's actual sustain and ARP transitions around live STYLE events.
+    p = repo / "tests/chord_test.c"
+    patch_once(p, '    fmxy_test_router = 0;\n    return bad;\n}', '''    /* Record a delayed chord while held, then release before later SPREAD
+     * attacks. Only attacks that happened may be written into the step. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    song.rec = song.playing = 1; t->seq_idx = 4u; t->seq_pos = 0u;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    initial = mo_w;
+    ok = fmxy_style_route_down(&r, 6u, 0u, am7, 4u, FMXY_STYLE_SPREAD, 30000u, FS);
+    fmxy_style_route_process(&r, 30000u);
+    ok &= t->step[4].n == 1u && t->step[4].note[0] == 57u &&
+          t->rh_n == 1u && r.queue.pending == 3u;
+    fmxy_style_route_up(&r, 6u);
+    fmxy_style_route_process(&r, 50000u);
+    ok &= t->step[4].n == 1u && t->rh_n == 0u && !ngated(t) &&
+          !r.queue.pending && mo_w == initial + 2u;
+    bad += check("FM-XY STYLE live REC: delayed notes record on start and cancel cleanly", ok);
+    /* A BLOCK chord held into another step becomes a tie; release cleans its
+     * recording ownership but preserves the completed tie. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    song.rec = song.playing = 1; t->seq_idx = 4u; t->seq_pos = 0u;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 7u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 60000u, FS);
+    fmxy_style_route_process(&r, 60000u);
+    ok &= t->step[4].n == 4u && t->rh_n == 4u;
+    rec_hold(t, 5u, NSTEP);
+    t->seq_idx = 5u;
+    t->seq_pos = step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), 5u) / 2u + 1u;
+    fmxy_style_route_up(&r, 7u);
+    ok &= t->step[5].time == ST_TIE && t->rh_n == 0u && !ngated(t) &&
+          !r.queue.pending;
+    bad += check("FM-XY STYLE live REC: held chord records a tie and releases cleanly", ok);
+    /* External MIDI C4 released under sustain must remain the shared voice
+     * through both a STYLE press and its release. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    midi(0x90, 60u, 100u); midi(0xB0, 64u, 127u); midi(0x80, 60u, 0u);
+    ok = gate_note(t, 60u) && (midi_notes[0][60] & MIDI_PEDAL_NOTE) != 0u;
+    ok &= fmxy_style_route_down(&r, 8u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 70000u, FS);
+    fmxy_style_route_process(&r, 70000u);
+    ok &= gate_note(t, 60u) && ngated(t) == 4u;
+    fmxy_style_route_up(&r, 8u);
+    ok &= gate_note(t, 60u) && ngated(t) == 1u;
+    midi(0xB0, 64u, 0u);
+    bad += check("FM-XY STYLE + MIDI sustain: STYLE release waits for pedal-up", ok && !ngated(t));
+    /* STYLE first, then a sustained MIDI owner. The final pedal-up must do
+     * exactly one cleanup after the key has released. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 9u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 80000u, FS);
+    fmxy_style_route_process(&r, 80000u);
+    initial = mo_w;
+    midi(0xB0, 64u, 127u); midi(0x90, 60u, 100u); midi(0x80, 60u, 0u);
+    ok &= gate_note(t, 60u) && ngated(t) == 4u &&
+          (midi_notes[0][60] & MIDI_PEDAL_NOTE) != 0u;
+    fmxy_style_route_up(&r, 9u);
+    ok &= gate_note(t, 60u) && ngated(t) == 1u && mo_w == initial + 4u;
+    midi(0xB0, 64u, 0u);
+    bad += check("FM-XY STYLE + MIDI sustain: pedal-up ends shared voice once", ok &&
+                 !ngated(t) && !midi_owners[0] && !r.queue.pending);
+    /* Toggle ARP while SPREAD notes are pending. Started direct notes release
+     * once; delayed notes join then leave ARP; nothing may remain held. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 10u, 0u, fm7, 4u, FMXY_STYLE_SPREAD, 90000u, FS);
+    fmxy_style_route_process(&r, 90000u);
+    ok &= gate_note(t, 53u) && r.queue.pending == 3u;
+    t->p[P_AMODE] = AM_UP; events_block(CTL);
+    fmxy_style_route_process(&r, 90000u + FS / 20u);
+    ok &= !gate_note(t, 56u) && t->nheld == 1u && r.queue.pending == 2u;
+    fmxy_style_route_up(&r, 10u);
+    ok &= !ngated(t) && !t->nheld && !t->arp_phys && !r.queue.pending;
+    t->p[P_AMODE] = AM_OFF; events_block(CTL);
+    bad += check("FM-XY STYLE ARP switch: in-flight notes clean up on release", ok);
+    /* ARP already on: turning it off before the physical release still clears
+     * the held chord, without creating direct voices or stale arp notes. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF; t->p[P_AMODE] = AM_UP;
+    events_block(CTL);
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 11u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 100000u, FS);
+    fmxy_style_route_process(&r, 100000u);
+    ok &= t->nheld == 4u && !ngated(t);
+    t->p[P_AMODE] = AM_OFF; events_block(CTL);
+    fmxy_style_route_up(&r, 11u);
+    ok &= !t->nheld && !t->arp_phys && !ngated(t) && !r.queue.pending;
+    bad += check("FM-XY STYLE ARP switch: ARP-held chord clears on mode-off", ok);
+    fmxy_test_router = 0;
+    return bad;
+}''')
     p = repo / "tests/chord_test.c"
     patch_once(p, "int bad = theory() + shapes_voicings() + keys() + arp_rec() + midi_in() + kits() + fmxy_root_type_keys();", "int bad = theory() + shapes_voicings() + keys() + arp_rec() + midi_in() + kits() + fmxy_root_type_keys() + fmxy_style_real_input_test();")
     p = repo / "tests/ui_render.c"
