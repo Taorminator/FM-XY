@@ -1,0 +1,39 @@
+name: Native FM-XY overlay checks
+on:
+  push:
+    branches: [firmware/felucca-first-port]
+  pull_request:
+    paths: ["firmware/**", ".github/workflows/native.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native chord tests
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic firmware/tests/test_harmony.c -o /tmp/fmxy-test
+          /tmp/fmxy-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic firmware/tests/test_keyboard.c -o /tmp/fmxy-keyboard-test
+          /tmp/fmxy-keyboard-test
+          cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style.c -o /tmp/fmxy-style-test
+          /tmp/fmxy-style-test
+          cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style_gate.c -o /tmp/fmxy-style-gate-test
+          /tmp/fmxy-style-gate-test
+          cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style_router.c -o /tmp/fmxy-style-router-test
+          /tmp/fmxy-style-router-test
+      - name: Fetch pinned Felucca source
+        run: |
+          git clone https://github.com/hugelton/Felucca.git /tmp/felucca
+          git -C /tmp/felucca checkout ef1f561b6b105f20350f6b1eac0dc0789a357f00
+      - name: Apply overlay to actual sources
+        run: python3 firmware/apply_felucca_overlay.py /tmp/felucca
+      - name: Verify overlay syntax and palette contrast
+        run: |
+          python3 -m py_compile firmware/apply_felucca_overlay.py
+          python3 /tmp/felucca/tools/gen_ui_palettes.py /tmp/fmxy-ui-palettes.h --report
+          test -s /tmp/fmxy-ui-palettes.h
+      - name: Verify unchanged hardware-critical paths
+        run: |
+          python3 firmware/verify_overlay_safety.py /tmp/felucca
+          git -C /tmp/felucca diff --stat
+          git -C /tmp/felucca status --short

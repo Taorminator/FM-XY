@@ -1,24 +1,15 @@
-# FM-XY Native Firmware Port
+# FM-XY native firmware
 
-FM-XY is entering the **native Felucca C port** stage. This repository's HTML groovebox remains a separate simulation, **not a flashable firmware**.
+Based on [Felucca](https://github.com/hugelton/Felucca), GPL-3.0-only, pinned to `ef1f561b6b105f20350f6b1eac0dc0789a357f00`.
 
-## Baseline
-- Upstream: [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments (GPL-3.0-only).
-- Pinned reference commit: `ef1f561b6b105f20350f6b1eac0dc0789a357f00` (2026-10-11).
-- Source layout: `firmware/src/felucca.c` includes other firmware source files in order. Existing `ui_graph.c` already draws a CHORD graph and `ui_draw.c` has a boot splash. `tools/gen_ui_palettes.py` generates device-safe palettes.
+This small, reproducible source overlay keeps Felucca's audio, eight-voice allocator, sequencer, storage and OTA mechanisms. It adds FM-XY splash/credits, read-only chord suggestions and a **ROOT-anchored chromatic hardware keyboard for Felucca's fixed CHRD types (MAJ through POW)**.
 
-## Conservative development plan
-1. Fork Felucca while preserving upstream ancestry, license files and credits.
-2. Reproduce Felucca's host and browser-emulator tests before any changes.
-3. Introduce the FM-XY splash and 3 palettes with tested, bounded LCD rendering.
-4. Extend the existing `SCL > CHORD` screen with suggestions while keeping ROOT and TYPE separate and editable.
-5. Bring over the sequencer and automation UI using Felucca's scheduler and engine, not the JavaScript audio simulator.
-6. Test render overflow, contrast, CPU budget, latency, memory, flash storage, backup and recovery.
-7. Only release a verified `.fwsc` for installation.
+With `ROOT=F` and `CHRD=MIN7`, the first three physical keys play Fm7, F#m7 and Gm7. The selected CHRD and VOIC settings never change on key press. Octave and TRANS remain active. For these fixed shapes, SCALE/QUANT keyboard snapping is intentionally bypassed; OFF and diatonic modes retain Felucca's original mapping. Kit-specific mappings remain unchanged. MIDI inputs still use their incoming pitches, not the physical keyboard offset.
 
-## Work in progress
-- `firmware/fmxy_harmony.h` is a small pure-C **prototype** of deterministic harmonic suggestions.
-- This new code is not wired into the Felucca display or music engine yet.
-- No real device build or flash image is provided.
+Existing Felucca polyphonic chord note-on/off, live and step recording, arpeggiator and global eight-voice stealing are reused. The native SCL > CHORD page now offers four working knobs: **ROOT / TYPE / VOICE / ARP**. Knob 4 uses Felucca's existing ARP mode, not the browser prototype's separate STYLE parameter. Browser STYLE modes **STRUM, SPREAD and ARP note-staggering** remain unimplemented. With a major/minor scale selected and a fixed chord TYPE, the CHORD page illuminates two suggested root-trigger keys (first brighter, second dimmer) without changing the chosen chord. SCALE LEDS behave as before on other screens. This is an incremental native UI, not a port of all three browser themes or the entire OP-XY visual language. FM1 hardware and timing remain unverified.
 
-See [upstream build guide](https://github.com/hugelton/Felucca/blob/main/BUILDING.md). Firmware installation stays disabled.
+The new `firmware/fmxy_style.h` is a **host-tested, fixed-memory scheduling primitive**, not yet connected to the FM1's note-on/off path. BLOCK starts all notes together; STRUM stages additional notes at 20 ms intervals and SPREAD at 50 ms intervals. It cancels future events on key release, suppresses OFF for unheard notes, survives sample-counter wrap, and explicitly delegates ARP to Felucca. A separate host-tested `fmxy_style_gate.h` now reference-counts pitches across all 27 hardware keys: overlapping chords send one ON and one final OFF, including partial releases and panic. The host-only `fmxy_style_router.h` now joins one 27-key queue with four independent pitch gates, retaining the track selected when each key was pressed, including selective panic. An additional upstream `tests/chord_test.c` regression now drives the staged STYLE router through Felucca's **actual** `input_on`/`input_off`, polyphonic voices, live recording and USB-MIDI output functions on the host. This checks timed chord output and balanced releases without modifying the production audio ISR. The adapter is only in the host regression and **does not make STRUM/SPREAD playable on FM1**. A host-only MIDI ownership hook now tests **both orderings** (MIDI before a chord, and MIDI arriving after a chord) and prevents premature note-offs in the simulated Felucca path. This guarded lookup is compiled out of production firmware. Native MIDI-source arbitration, production note routing, and the real ISR budget still require further integration and verification. No STRUM/SPREAD playback is claimed yet.
+
+Run `python3 firmware/apply_felucca_overlay.py PATH_TO_PINNED_FELUCCA`, then follow [Felucca's build instructions](https://github.com/hugelton/Felucca/blob/main/BUILDING.md).
+
+CI builds the upstream baseline and patched tree independently. **No release is approved for hardware installation.** [Installer gates](INSTALLER.md) · [Credits](../CREDITS.md)

@@ -1,0 +1,89 @@
+name: Felucca baseline and FM-XY full build
+on:
+  push:
+    branches: [firmware/felucca-first-port]
+    paths:
+      - "firmware/**"
+      - ".github/workflows/native-full-build.yml"
+  workflow_dispatch:
+jobs:
+  baseline-and-port:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FELUCCA_COMMIT: ef1f561b6b105f20350f6b1eac0dc0789a357f00
+      JIELI_TOOLCHAIN: ${{ github.workspace }}/.toolchains/toolchain
+      AC79_SDK: ${{ github.workspace }}/.toolchains/fw-AC79_AIoT_SDK
+    steps:
+      - name: Check out FM-XY
+        uses: actions/checkout@v4
+      - name: Host prerequisites
+        run: |
+          python3 -m pip install --break-system-packages Pillow fonttools
+          command -v cc
+          command -v node
+      - name: FM-XY STYLE scheduler host tests
+        run: |
+          cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic firmware/tests/test_style.c -o /tmp/fmxy-style-test
+          /tmp/fmxy-style-test
+      - name: Clone pinned Felucca upstream
+        run: |
+          git clone --filter=blob:none https://github.com/hugelton/Felucca.git /tmp/felucca-base
+          git -C /tmp/felucca-base checkout "${FELUCCA_COMMIT}"
+          git -C /tmp/felucca-base rev-parse HEAD
+      - name: Obtain official build dependencies
+        run: |
+          mkdir -p .toolchains
+          sh /tmp/felucca-base/tools/get_toolchain.sh "${{ github.workspace }}/.toolchains"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "${AC79_SDK}"
+      - name: Baseline build and full upstream tests
+        run: |
+          cd /tmp/felucca-base
+          ./build.sh
+          sh tests/run_tests.sh
+      - name: Apply FM-XY overlay to separate source copy
+        run: |
+          cp -a /tmp/felucca-base /tmp/fmxy-felucca
+          git -C /tmp/fmxy-felucca reset --hard "${FELUCCA_COMMIT}"
+          python3 firmware/apply_felucca_overlay.py /tmp/fmxy-felucca
+      - name: FM-XY full build and regressions
+        run: |
+          cd /tmp/fmxy-felucca
+          ./build.sh
+          sh tests/run_tests.sh
+      - name: Validate offline Felucca installer staging
+        run: |
+          cd /tmp/fmxy-felucca
+          test -s build/felucca.fwsc
+          python3 web/make_site.py build/felucca.fwsc dev /tmp/fmxy-installer-stage
+          test -s /tmp/fmxy-installer-stage/webapp/installer/index.html
+          test -s /tmp/fmxy-installer-stage/webapp/editor/index.html
+          test -s /tmp/fmxy-installer-stage/firmware/felucca-dev.fwsc
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path('/tmp/fmxy-installer-stage')
+          page = (root / 'webapp/installer/index.html').read_text()
+          pkg = (root / 'firmware/felucca-dev.fwsc').read_bytes()
+          assert 'FELUCCA-LOADER-1' in pkg.decode('latin-1')
+          assert '/*LIB*/' not in page and '/*META*/' not in page
+          assert 'fm1ota.js' not in page or 'class Updater' in page
+          assert 'captureBackup' in page and 'validateStockPackage' in page
+          assert 'FM-1_900' in page
+          print(f'Offline installer validated; package SHA-256: {hashlib.sha256(pkg).hexdigest()}')
+          print('Package stays CI-local, never uploaded or published.')
+          PY
+      - name: Confirm unchanged audio and loader sources
+        if: always()
+        run: |
+          if test -d /tmp/fmxy-felucca/.git; then
+            git -C /tmp/fmxy-felucca diff --name-only | tee /tmp/fmxy-changed-files.txt
+            python3 firmware/verify_overlay_safety.py /tmp/fmxy-felucca
+          fi
+      - name: Test summary only (no firmware upload)
+        if: always()
+        run: |
+          echo "## Native build status" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned Felucca commit: \`${FELUCCA_COMMIT}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Any .fwsc is CI-local only; not published or installer-enabled." >> "$GITHUB_STEP_SUMMARY"

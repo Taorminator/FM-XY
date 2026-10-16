@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+"""Apply the FM-XY proof-of-concept overlay to the pinned Felucca checkout.
+
+Never touches engine, scheduler, OTA loader, storage or backup code.
+Run against hugelton/Felucca at ef1f561b6b105f20350f6b1eac0dc0789a357f00.
+"""
+from __future__ import annotations
+import argparse
+from pathlib import Path
+import shutil
+import subprocess
+
+UPSTREAM = "ef1f561b6b105f20350f6b1eac0dc0789a357f00"
+STAGED = {}
+
+
+def patch_once(path: Path, old: str, new: str) -> None:
+    source = STAGED.get(path)
+    if source is None:
+        source = path.read_text(encoding="utf-8")
+    count = source.count(old)
+    if count != 1:
+        raise RuntimeError(f"{path}: expected one anchor, found {count} for {old[:80]!r}")
+    STAGED[path] = source.replace(old, new, 1)
+    print(f"FM-XY PATCH {path}")
+
+
+def install(repo: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    sha = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    if sha != UPSTREAM:
+        raise RuntimeError(f"Wrong upstream commit {sha}; expected {UPSTREAM}")
+    target = repo / "firmware/src/fmxy_harmony.h"
+    keyboard = repo / "firmware/src/fmxy_keyboard.h"
+    if target.exists() or keyboard.exists():
+        raise RuntimeError("FM-XY overlay already applied")
+    p = repo / "firmware/src/seq.c"
+    anchor = "static uint32_t kb_pitch(const track_t *t, uint32_t k, int32_t oct)\n{\n"
+    # Fixed CHRD shapes use ROOT on key zero, independent of SCALE/QUANT.
+    patch_once(p, anchor, '#include "fmxy_keyboard.h"\n' + anchor +
+               '    if (t->p[P_CHRD] >= FMXY_FIXED_FIRST && t->p[P_CHRD] <= FMXY_FIXED_LAST)\n'
+               '        return fmxy_keyboard_note((uint32_t)t->p[P_ROOT], k, oct, t->p[P_TRANS]);\n')
+    p = repo / "firmware/src/ui_graph.c"
+    patch_once(p, '#include "ui_fm6op.c"',
+               '#include "fmxy_harmony.h"\n#include "ui_fm6op.c"')
+    old = """    chord_name(b, (uint32_t)r, mask);
+    cv_text_on(14, 8, &AF_M, b, T_TEXT, T_SURF);"""
+    new = """    chord_name(b, (uint32_t)r, mask);
+    cv_text_on(14, 8, &AF_M, b, T_TEXT, T_SURF);
+    if (t->p[P_SCALE] == 1 || t->p[P_SCALE] == 2) {
+        fmxy_hint_t hints[2];
+        static const char *const quality[] = {"maj7", "m7", "7", "dim"};
+        char first[16], second[16];
+        fmxy_suggest((uint8_t)((uint32_t)r % 12u),
+                     (uint8_t)t->p[P_ROOT],
+                     (uint8_t)(t->p[P_SCALE] == 2), hints);
+        str_cpy(first, N_NOTE[hints[0].root], sizeof first);
+        str_cpy(first + str_len(first), quality[hints[0].quality],
+                sizeof first - str_len(first));
+        str_cpy(second, N_NOTE[hints[1].root], sizeof second);
+        str_cpy(second + str_len(second), quality[hints[1].quality],
+                sizeof second - str_len(second));
+        cv_text_on(14, 24, &AF_S, "NEXT", T_MID, T_SURF);
+        cv_text_on(76, 24, &AF_S, first, T_THEME, T_SURF);
+        cv_text_on(156, 24, &AF_S, second, T_THEME, T_SURF);
+    }"""
+    patch_once(p, old, new)
+
+    p = repo / "firmware/src/ui_draw.c"
+    patch_once(p,
+               'static const char *const SPLASH_LINES[] = {"Felucca", FELUCCA_VERSION, "H\\xFCgelton Instruments", "with community"};',
+               'static const char *const SPLASH_LINES[] = {"FM-XY", FELUCCA_VERSION, "Middle Age", "Engineering"};')
+    p = repo / "firmware/src/ui_menu.c"
+    patch_once(p,
+               'static const menu_credit_t MENU_CREDITS[] = {\n',
+               '''static const menu_credit_t MENU_CREDITS[] = {
+    {"FM-XY", MC_TITLE},
+    {"Middle Age Engineering", MC_TEXT},
+    {"Felucca fork / based on work by Leo Kuroshita", MC_TEXT},
+    {"https://github.com/Taorminator/FM-XY", MC_URL},
+    {"Independent project. No warranty.", MC_TEXT},
+    {"", MC_TEXT},
+''')
+    # Host-only test fixture; production MIDI behavior is untouched.
+    p = repo / "firmware/src/midi_control.c"
+    patch_once(p, "    return 0;\n}\n\nstatic void midi_release(uint32_t ch, uint32_t note)", "#if defined(FMXY_STYLE_TEST_OWNER)\n    /* Test-only owner lookup, excluded from the production firmware.\n     * Pending delayed notes are not sounding MIDI owners. */\n    if (fmxy_test_router && fmxy_style_route_active(fmxy_test_router,\n                                                    trk_index(t), note))\n        return 1;\n#endif\n    return 0;\n}\n\nstatic void midi_release(uint32_t ch, uint32_t note)")
+    p = repo / "tests/chord_test.c"
+    patch_once(p, '#include "ui_test.c"',
+               '#include "../firmware/src/fmxy_style_router.h"\n'
+               'static fmxy_style_router_t *fmxy_test_router;\n'
+               '#define FMXY_STYLE_TEST_OWNER 1\n'
+               '#include "ui_test.c"')
+    p = repo / "tests/chord_test.c"
+    patch_once(p, 'int main(void)\n{', "/* FM-XY: physical key zero follows ROOT; every key plays a complete fixed TYPE. */\nstatic int fmxy_root_type_keys(void)\n{\n    int bad = 0, ok = 1;\n    track_t *t = &trk[0];\n    static const uint8_t notes[3][4] = {\n        {53, 56, 60, 63}, {54, 57, 61, 64}, {55, 58, 62, 65}\n    };\n    uint32_t key, i;\n    reset();\n    song.octave = 0;\n    t->p[P_ROOT] = 5; t->p[P_CHRD] = CH_MIN7; t->p[P_VOIC] = VC_CLOSE;\n    t->p[P_QUANT] = QN_WHITE;  /* Fixed TYPE stays chromatic, even with WHITE set. */\n    for (key = 0; key < 3u; key++) {\n        key_down(key);\n        ok &= kb_note[key] == 53u + key && ngated(t) == 4u;\n        for (i = 0; i < 4u; i++) ok &= gate_note(t, notes[key][i]);\n        ok &= t->p[P_ROOT] == 5 && t->p[P_CHRD] == CH_MIN7 && t->p[P_VOIC] == VC_CLOSE;\n        key_up(key);\n        ok &= !ngated(t);\n    }\n    bad += check(\"FM-XY F m7: physical F, F#, G each plays its full chromatic m7\", ok);\n    key_down(7); bad += check(\"FM-XY transposition crosses octave (C4m7)\",\n                              kb_note[7] == 60 && gate_note(t, 60) && gate_note(t, 63) &&\n                              gate_note(t, 67) && gate_note(t, 70));\n    key_up(7);\n    song.octave = 1;\n    key_down(0); bad += check(\"FM-XY octave button retains F4m7\",\n                              kb_note[0] == 65 && gate_note(t, 65) && gate_note(t, 68) &&\n                              gate_note(t, 72) && gate_note(t, 75));\n    key_up(0); song.octave = 0;\n    t->p[P_ROOT] = 0;\n    key_down(0); bad += check(\"FM-XY ROOT C moves physical first key to C3m7\",\n                              kb_note[0] == 48 && gate_note(t, 48) && gate_note(t, 51) &&\n                              gate_note(t, 55) && gate_note(t, 58));\n    key_up(0);\n    t->p[P_ROOT] = 5;\n    t->p[P_VOIC] = VC_OPEN;\n    key_down(0); bad += check(\"FM-XY OPEN voicing retained\",\n                              gate_note(t, 53) && gate_note(t, 60) && gate_note(t, 63) && gate_note(t, 68));\n    key_up(0);\n    t->p[P_VOIC] = VC_CLOSE;\n    key_down(0); key_down(1); key_down(2);\n    bad += check(\"FM-XY multi-key chords respect global eight-voice limit\",\n                 voices_busy() <= NVOICE && voices_busy() > 0u);\n    key_up(0); key_up(1); key_up(2);\n    bad += check(\"FM-XY all held notes eventually release\", !ngated(t));\n    song.rec = 1; song.playing = 1; t->seq_idx = 4; t->seq_pos = 0;\n    key_down(0);\n    ok = t->step[4].n == 4u && t->step[4].time == ST_NOTE;\n    for (i = 0; ok && i < 4u; i++) ok &= t->step[4].note[i] == notes[0][i];\n    bad += check(\"FM-XY live recording preserves full chord notes and octaves\", ok);\n    key_up(0); song.rec = 0; song.playing = 0;\n    t->p[P_AMODE] = AM_UP;\n    key_down(0);\n    ok = t->nheld == 4u;\n    for (i = 0; ok && i < 4u; i++) ok &= t->held[i] == notes[0][i];\n    bad += check(\"FM-XY arpeggiator holds the translated chord pitches\", ok);\n    key_up(0);\n    t->p[P_AMODE] = AM_OFF;\n    return bad;\n}\n\n" + 'int main(void)\n{')
+    patch_once(p, 'int bad = theory() + shapes_voicings() + keys() + arp_rec() + midi_in() + kits();',
+               'int bad = theory() + shapes_voicings() + keys() + arp_rec() + midi_in() + kits() + fmxy_root_type_keys();')
+    # An upstream fixed-chord test expects C4 on physical key 7; use ROOT F
+    # to preserve that expectation after the new ROOT-anchored keyboard mapping.
+    patch_once(p, 't->p[P_CHRD] = CH_MAJ7; t->p[P_VOIC] = VC_BASS;\n    t->seq_idx = 4;',
+               't->p[P_ROOT] = 5; t->p[P_CHRD] = CH_MAJ7; t->p[P_VOIC] = VC_BASS;\n    t->seq_idx = 4;')
+
+    # The original CH_POW arpeggiator fixture assumes key 7 is always C4.
+    # With the ROOT-based fixed-chord keyboard this is true when ROOT = F.
+    p = repo / "tests/scale_test.c"
+    patch_once(p, "    t->p[P_CHRD] = CH_POW;",
+               "    t->p[P_ROOT] = 5;\n    t->p[P_CHRD] = CH_POW;")
+    patch_once(p,
+               "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);",
+               "    assert(arp_seen[0] == 60 && arp_seen[1] == 67 && arp_seen[2] == 72);\n    t->p[P_ROOT] = 7;   /* ROOT G: the held chord follows the keyboard up 2 semitones */\n    arp_run(t, 3);\n    assert(arp_seen[0] == 62 && arp_seen[1] == 69 && arp_seen[2] == 74);\n    t->p[P_ROOT] = 5;")
+    p = repo / "firmware/src/ui_graph.c"
+    patch_once(p, "        cv_rrect(x, BLACK[note % 12u] ? 36 : 62, (int32_t)w - 2, 48, w > 6u ? 3 : 2,\n                 !on ? T_RAISE : note % 12u == (uint32_t)r % 12u ? T_ACCENT : c, T_SURF);", "        /* FM-XY: hard vertical bars with clean negative-space cuts, kept\n         * inside the original piano geometry for 240x240 readability. */\n        {\n            int32_t top = BLACK[note % 12u] ? 36 : 62;\n            int32_t width = (int32_t)w - 2;\n            uint16_t shade = !on ? T_RAISE : note % 12u == (uint32_t)r % 12u ? T_ACCENT : c;\n            cv_rect(x, top, width, 48, shade);\n            cv_rect(x + width / 2, top + 5, 1, on ? 3 : 7, T_SURF);\n        }")
+    p = repo / "firmware/src/params.c"
+    patch_once(p, "    {\"CHORD\", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, 0xFF, 0xFF}},", "    {\"CHORD\", FAM_SCL, SC_TRACK, GR_CHORD, {P_ROOT, P_CHRD, P_VOIC, P_AMODE}},")
+    p = repo / "firmware/src/ui_draw.c"
+    patch_once(p, "static void draw_columns(void)\n{", "/* FM-XY four hardware knobs on CHORD. */\nstatic const char *fmxy_chord_card_label(uint32_t c)\n{\n    static const char *const labels[4] = {\"ROOT\", \"TYPE\", \"VOICE\", \"ARP\"};\n    return labels[c & 3u];\n}\nstatic void draw_columns(void)\n{")
+    p = repo / "firmware/src/ui_draw.c"
+    patch_once(p, "        draw_column(c, d->label, val, unit, VAL(c), d->fmt == F_ENUM && d->max < 2 ? -1 : RATIO(d, enum_rank(d, *vp)),", "        draw_column(c, cur_page()->graph == GR_CHORD ? fmxy_chord_card_label(c) : d->label, val, unit,\n                    VAL(c), d->fmt == F_ENUM && d->max < 2 ? -1 : RATIO(d, enum_rank(d, *vp)),")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "static uint32_t song_leds(void);", "/* Suggestions illuminate triggers but never edit or sound notes.\n * UI work only, not inside the audio ISR. */\nstatic uint32_t fmxy_chord_hint_leds(uint32_t *first)\n{\n    const track_t *t = TSEL;\n    fmxy_hint_t hints[2];\n    uint32_t k, second = 0;\n    *first = 0;\n    if (ui.home || ui.menu || ui.layer || ui.confirm || name_on() ||\n        cur_page()->graph != GR_CHORD || chord_kit(t) ||\n        t->p[P_CHRD] < CH_MAJ || t->p[P_CHRD] > CH_POW ||\n        (t->p[P_SCALE] != 1 && t->p[P_SCALE] != 2))\n        return 0;\n    fmxy_suggest((uint8_t)t->p[P_ROOT], (uint8_t)t->p[P_ROOT],\n                 (uint8_t)(t->p[P_SCALE] == 2), hints);\n    for (k = 0; k < 12u; k++) {\n        uint32_t note = kb_map(t, k);\n        if (note == KB_SILENT)\n            continue;\n        if (note % 12u == hints[0].root)\n            *first |= 1u << k;\n        else if (note % 12u == hints[1].root)\n            second |= 1u << k;\n    }\n    return second;\n}\nstatic uint32_t song_leds(void);")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "    uint32_t k, c, g, br, beat, sc, sr = 0;", "    uint32_t k, c, g, br, beat, sc, sr = 0, fmxy_first = 0, fmxy_second;")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "    sc = keys_map ? 0u : scale_leds(&sr);", "    fmxy_second = keys_map ? 0u : fmxy_chord_hint_leds(&fmxy_first);\n    sc = keys_map || fmxy_first || fmxy_second ? 0u : scale_leds(&sr);")
+    p = repo / "firmware/src/ui_input.c"
+    patch_once(p, "        led_put(nb, 14u + k, (int)((br >> k) & 1u));", "        led_put(nb, 14u + k, (int)((br >> k) & 1u));\n        led_put(sm, 14u + k, (int)((fmxy_first >> k) & 1u));\n        led_put(sg, 14u + k, (int)((fmxy_second >> k) & 1u));")
+    p = repo / "tests/ui_test.c"
+    patch_once(p, "    bad += check(\"SCL tapped again: the CHORD page (CHRD VOIC, the chord graph)\", ok && cur_page()->id[0] == P_CHRD &&\n                 cur_page()->id[1] == P_VOIC);", "    bad += check(\"FM-XY CHORD page: ROOT TYPE VOICE ARP\", ok &&\n                 cur_page()->id[0] == P_ROOT && cur_page()->id[1] == P_CHRD &&\n                 cur_page()->id[2] == P_VOIC && cur_page()->id[3] == P_AMODE);")
+    p = repo / "tests/ui_test.c"
+    patch_once(p, "    turn(EN_K1, 1); frame();\n    turn(EN_K2, 1); frame();\n    bad += check(\"  KNOB 1: CHRD DIA3, KNOB 2: VOIC OPEN\", t->p[P_CHRD] == CH_DIA3 && t->p[P_VOIC] == VC_OPEN);", "    turn(EN_K2, 1); frame();\n    turn(EN_K3, 1); frame();\n    bad += check(\"  FM-XY KNOB 2 TYPE DIA3, KNOB 3 VOICE OPEN\", t->p[P_CHRD] == CH_DIA3 && t->p[P_VOIC] == VC_OPEN);\n    turn(EN_K4, 1); frame();\n    bad += check(\"  FM-XY KNOB 4 controls native ARP\", t->p[P_AMODE] == AM_UP);\n    turn(EN_K4, -1); frame();")
+    p = repo / "tests/ui_test.c"
+    patch_once(p, "    key_down(7); frame();                                          /* C4 in C (SCALE CHR: the major of C) */", "    t->p[P_ROOT] = 5; t->p[P_SCALE] = 1; t->p[P_CHRD] = CH_MAJ;\n    {\n        uint32_t first = 0, second = fmxy_chord_hint_leds(&first);\n        bad += check(\"FM-XY LEDs: C then D as suggestion triggers in F major\",\n                     first == (1u << 7) && second == (1u << 9));\n        bad += check(\"  hints leave the chosen chord untouched\",\n                     t->p[P_ROOT] == 5 && t->p[P_CHRD] == CH_MAJ && t->p[P_VOIC] == VC_OPEN);\n        t->p[P_SCALE] = 0;\n        bad += check(\"  chromatic: no misleading diatonic LEDs\",\n                     fmxy_chord_hint_leds(&first) == 0u && first == 0u);\n    }\n    t->p[P_ROOT] = 0; t->p[P_CHRD] = CH_DIA3; t->p[P_SCALE] = 0;\n    key_down(7); frame();                                          /* C4 in C (SCALE CHR: the major of C) */")
+    p = repo / "tests/chord_test.c"
+    patch_once(p, "int main(void)\n{", "/* Real Felucca input-path compatibility test for the STYLE scheduler.\n * This is NOT yet an ISR hook: drive router events through input_on/off\n * and the real MIDI output and record code in hostsim (all in one TU). */\n#include \"../firmware/src/fmxy_style_router.h\"\nstatic void fmxy_bridge_emit(uint8_t track, uint8_t note, uint8_t on, void *unused)\n{\n    track_t *t = &trk[track];\n    uint32_t mc = trk_midi_ch(track);\n    (void)unused;\n    if (on) {\n        if (!midi_note_held(t, note))\n            input_on(t, note, 100u);\n        midi_out_event(0x09u | (0x90u | mc) << 8 | (uint32_t)note << 16 | 100u << 24);\n    } else {\n        if (!midi_local_held(t, note))\n            input_off(t, note);\n        midi_out_event(0x08u | (0x80u | mc) << 8 | (uint32_t)note << 16);\n    }\n}\nstatic int fmxy_style_real_input_test(void)\n{\n    static const uint8_t fm7[4] = {53, 56, 60, 63};\n    static const uint8_t am7[4] = {57, 60, 64, 67};\n    fmxy_style_router_t r = {0};\n    track_t *t = &trk[0];\n    uint32_t k, timing = FS / 50u, initial;\n    int bad = 0, ok = 1;\n    reset();\n    t->p[P_CHRD] = CH_MIN7; t->p[P_VOICE] = V_POLY;\n    fmxy_style_route_init(&r, fmxy_bridge_emit, 0);\n    fmxy_test_router = &r;\n    song.rec = 1; song.playing = 1; t->seq_idx = 4; t->seq_pos = 0;\n    /* Timed events must use the real voice, record and MIDI output paths. */\n    ok &= fmxy_style_route_down(&r, 0u, 0u, fm7, 4u, FMXY_STYLE_STRUM, 100u, FS);\n    fmxy_style_route_process(&r, 100u);\n    ok &= gate_note(t, 53u) && ngated(t) == 1u && mo_w == 1u &&\n          t->step[4].n == 1u && t->step[4].note[0] == 53u;\n    for (k = 1; k < 4u; k++) {\n        fmxy_style_route_process(&r, 100u + k * timing - 1u);\n        ok &= t->step[4].n == k && mo_w == k;\n        fmxy_style_route_process(&r, 100u + k * timing);\n        ok &= t->step[4].n == k + 1u && mo_w == k + 1u &&\n              gate_note(t, fm7[k]) && voices_busy() <= NVOICE;\n    }\n    ok &= t->step[4].note[0] == 53u && t->step[4].note[1] == 56u &&\n          t->step[4].note[2] == 60u && t->step[4].note[3] == 63u;\n    fmxy_style_route_up(&r, 0u);\n    ok &= !ngated(t) && mo_w == 8u && r.queue.pending == 0u;\n    bad += check(\"FM-XY STYLE bridge: timed notes reach Felucca voices, live REC and MIDI OUT\", ok);\n    song.rec = song.playing = 0;\n    /* Before its delayed notes fire, releasing must never emit their OFFs. */\n    initial = mo_w;\n    ok = fmxy_style_route_down(&r, 1u, 0u, am7, 4u, FMXY_STYLE_SPREAD, 10000u, FS);\n    fmxy_style_route_process(&r, 10000u);\n    ok &= gate_note(t, 57u) && r.queue.pending == 3u && mo_w == initial + 1u;\n    fmxy_style_route_up(&r, 1u);\n    ok &= mo_w == initial + 2u && !ngated(t) && r.queue.pending == 0u;\n    fmxy_style_route_process(&r, 20000u);\n    bad += check(\"FM-XY STYLE bridge: early release cancels unheard notes and MIDI events\",\n                 ok && mo_w == initial + 2u);\n    /* Same pitch in two chords: only one note-on, then one last note-off. */\n    initial = mo_w;\n    ok = fmxy_style_route_down(&r, 2u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 25000u, FS) &&\n         fmxy_style_route_down(&r, 3u, 0u, am7, 4u, FMXY_STYLE_BLOCK, 25000u, FS);\n    fmxy_style_route_process(&r, 25000u);\n    ok &= mo_w == initial + 7u && r.gate[0].references[60] == 2u &&\n          voices_busy() <= NVOICE;\n    fmxy_style_route_up(&r, 2u);\n    ok &= gate_note(t, 60u) && r.gate[0].references[60] == 1u;\n    fmxy_style_route_up(&r, 3u);\n    ok &= !ngated(t) && mo_w == initial + 14u && r.queue.pending == 0u;\n    bad += check(\"FM-XY STYLE bridge: shared voices/MIDI balanced and eight-voice budget\", ok);\n    /* MIDI starts first: a staged physical chord includes its held C4.\n     * Releasing the physical chord must not cut off the external owner.\n     * The reverse ordering (STYLE starts before MIDI) is deliberately\n     * not cleared for production until midi_local_held sees STYLE owners. */\n    t->p[P_CHRD] = CH_OFF;\n    midi(0x90, 60u, 100u);\n    ok = gate_note(t, 60u) && ngated(t) == 1u;\n    initial = mo_w;\n    ok &= fmxy_style_route_down(&r, 4u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 30000u, FS);\n    fmxy_style_route_process(&r, 30000u);\n    ok &= ngated(t) == 4u && r.gate[0].references[60] == 1u &&\n          mo_w == initial + 4u && voices_busy() <= NVOICE;\n    fmxy_style_route_up(&r, 4u);\n    ok &= gate_note(t, 60u) && ngated(t) == 1u && mo_w == initial + 8u;\n    midi(0x80, 60u, 0u);\n    bad += check(\"FM-XY STYLE bridge: MIDI-first ownership survives staged chord release\",\n                 ok && !ngated(t) && !r.queue.pending);\n    /* STYLE first, then external MIDI. The external source must not retrigger,\n     * and STYLE release may not silence the note owned by MIDI. */\n    initial = mo_w;\n    ok = fmxy_style_route_down(&r, 5u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 35000u, FS);\n    fmxy_style_route_process(&r, 35000u);\n    ok &= gate_note(t, 60u) && ngated(t) == 4u && mo_w == initial + 4u;\n    midi(0x90, 60u, 100u);\n    ok &= ngated(t) == 4u && mo_w == initial + 4u &&\n          fmxy_style_route_active(&r, 0u, 60u) == 1u;\n    fmxy_style_route_up(&r, 5u);\n    ok &= gate_note(t, 60u) && ngated(t) == 1u && mo_w == initial + 8u;\n    midi(0x80, 60u, 0u);\n    bad += check(\"FM-XY STYLE bridge: STYLE-first MIDI ownership survives both releases\",\n                 ok && !ngated(t) && !r.queue.pending);\n    fmxy_test_router = 0;\n    return bad;\n}\n\nint main(void)\n{")
+    # Extend the generated host fixture (not production firmware) to cover
+    # Felucca's actual sustain and ARP transitions around live STYLE events.
+    p = repo / "tests/chord_test.c"
+    patch_once(p, '    fmxy_test_router = 0;\n    return bad;\n}', '''    /* Record a delayed chord while held, then release before later SPREAD
+     * attacks. Only attacks that happened may be written into the step. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    song.rec = song.playing = 1; t->seq_idx = 4u; t->seq_pos = 0u;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    initial = mo_w;
+    ok = fmxy_style_route_down(&r, 6u, 0u, am7, 4u, FMXY_STYLE_SPREAD, 30000u, FS);
+    fmxy_style_route_process(&r, 30000u);
+    ok &= t->step[4].n == 1u && t->step[4].note[0] == 57u &&
+          t->rh_n == 1u && r.queue.pending == 3u;
+    fmxy_style_route_up(&r, 6u);
+    fmxy_style_route_process(&r, 50000u);
+    ok &= t->step[4].n == 1u && t->rh_n == 0u && !ngated(t) &&
+          !r.queue.pending && mo_w == initial + 2u;
+    bad += check("FM-XY STYLE live REC: delayed notes record on start and cancel cleanly", ok);
+    /* A BLOCK chord held into another step becomes a tie; release cleans its
+     * recording ownership but preserves the completed tie. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    song.rec = song.playing = 1; t->seq_idx = 4u; t->seq_pos = 0u;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 7u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 60000u, FS);
+    fmxy_style_route_process(&r, 60000u);
+    ok &= t->step[4].n == 4u && t->rh_n == 4u;
+    rec_hold(t, 5u, NSTEP);
+    t->seq_idx = 5u;
+    t->seq_pos = step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), 5u) / 2u + 1u;
+    fmxy_style_route_up(&r, 7u);
+    ok &= t->step[5].time == ST_TIE && t->rh_n == 0u && !ngated(t) &&
+          !r.queue.pending;
+    bad += check("FM-XY STYLE live REC: held chord records a tie and releases cleanly", ok);
+    /* External MIDI C4 released under sustain must remain the shared voice
+     * through both a STYLE press and its release. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    midi(0x90, 60u, 100u); midi(0xB0, 64u, 127u); midi(0x80, 60u, 0u);
+    ok = gate_note(t, 60u) && (midi_notes[0][60] & MIDI_PEDAL_NOTE) != 0u;
+    ok &= fmxy_style_route_down(&r, 8u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 70000u, FS);
+    fmxy_style_route_process(&r, 70000u);
+    ok &= gate_note(t, 60u) && ngated(t) == 4u;
+    fmxy_style_route_up(&r, 8u);
+    ok &= gate_note(t, 60u) && ngated(t) == 1u;
+    midi(0xB0, 64u, 0u);
+    bad += check("FM-XY STYLE + MIDI sustain: STYLE release waits for pedal-up", ok && !ngated(t));
+    /* STYLE first, then a sustained MIDI owner. The final pedal-up must do
+     * exactly one cleanup after the key has released. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 9u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 80000u, FS);
+    fmxy_style_route_process(&r, 80000u);
+    initial = mo_w;
+    midi(0xB0, 64u, 127u); midi(0x90, 60u, 100u); midi(0x80, 60u, 0u);
+    ok &= gate_note(t, 60u) && ngated(t) == 4u &&
+          (midi_notes[0][60] & MIDI_PEDAL_NOTE) != 0u;
+    fmxy_style_route_up(&r, 9u);
+    ok &= gate_note(t, 60u) && ngated(t) == 1u && mo_w == initial + 4u;
+    midi(0xB0, 64u, 0u);
+    bad += check("FM-XY STYLE + MIDI sustain: pedal-up ends shared voice once", ok &&
+                 !ngated(t) && !midi_owners[0] && !r.queue.pending);
+    /* Toggle ARP while SPREAD notes are pending. Started direct notes release
+     * once; delayed notes join then leave ARP; nothing may remain held. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF;
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 10u, 0u, fm7, 4u, FMXY_STYLE_SPREAD, 90000u, FS);
+    fmxy_style_route_process(&r, 90000u);
+    ok &= gate_note(t, 53u) && r.queue.pending == 3u;
+    t->p[P_AMODE] = AM_UP; events_block(CTL);
+    fmxy_style_route_process(&r, 90000u + FS / 20u);
+    ok &= !gate_note(t, 56u) && t->nheld == 1u && r.queue.pending == 2u;
+    fmxy_style_route_up(&r, 10u);
+    ok &= !ngated(t) && !t->nheld && !t->arp_phys && !r.queue.pending;
+    t->p[P_AMODE] = AM_OFF; events_block(CTL);
+    bad += check("FM-XY STYLE ARP switch: in-flight notes clean up on release", ok);
+    /* ARP already on: turning it off before the physical release still clears
+     * the held chord, without creating direct voices or stale arp notes. */
+    reset();
+    t = &trk[0]; t->p[P_CHRD] = CH_OFF; t->p[P_AMODE] = AM_UP;
+    events_block(CTL);
+    fmxy_style_route_init(&r, fmxy_bridge_emit, 0); fmxy_test_router = &r;
+    ok = fmxy_style_route_down(&r, 11u, 0u, fm7, 4u, FMXY_STYLE_BLOCK, 100000u, FS);
+    fmxy_style_route_process(&r, 100000u);
+    ok &= t->nheld == 4u && !ngated(t);
+    t->p[P_AMODE] = AM_OFF; events_block(CTL);
+    fmxy_style_route_up(&r, 11u);
+    ok &= !t->nheld && !t->arp_phys && !ngated(t) && !r.queue.pending;
+    bad += check("FM-XY STYLE ARP switch: ARP-held chord clears on mode-off", ok);
+    fmxy_test_router = 0;
+    return bad;
+}''')
+    p = repo / "tests/chord_test.c"
+    patch_once(p, "int bad = theory() + shapes_voicings() + keys() + arp_rec() + midi_in() + kits() + fmxy_root_type_keys();", "int bad = theory() + shapes_voicings() + keys() + arp_rec() + midi_in() + kits() + fmxy_root_type_keys() + fmxy_style_real_input_test();")
+    p = repo / "tests/ui_render.c"
+    patch_once(
+        p,
+        'static const char WANT[] = "Felucca|" FELUCCA_VERSION "|H\\xFCgelton Instruments|with community";',
+        'static const char WANT[] = "FM-XY|" FELUCCA_VERSION "|Middle Age|Engineering";',
+    )
+
+    for path, content in STAGED.items():
+        path.write_text(content, encoding="utf-8")
+    shutil.copyfile(root / "firmware/fmxy_harmony.h", target)
+    shutil.copyfile(root / "firmware/fmxy_keyboard.h", keyboard)
+    for header in ("fmxy_style.h", "fmxy_style_gate.h", "fmxy_style_router.h"):
+        shutil.copyfile(root / "firmware" / header, repo / "firmware/src" / header)
+    print("FM-XY overlay applied. Audio, update and storage code unchanged.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("felucca", type=Path)
+    opts = parser.parse_args()
+    install(opts.felucca.resolve())
